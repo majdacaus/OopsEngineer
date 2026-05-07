@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using Object = UnityEngine.Object;
 
 public class BridgeManager : MonoBehaviour
@@ -11,7 +12,8 @@ public class BridgeManager : MonoBehaviour
     [SerializeField] float snapRadius = 1.0f;
     [SerializeField] float maxBeamLength = 6.0f;
     [SerializeField] float minBeamLength = 0.5f;
-
+    [SerializeField] private GameObject _currentBeamPrefab;
+    
     [Header("3D/2D Hybrid")]
     [SerializeField] float bridgeWidth = 3.0f;
     [SerializeField] bool autoBuildParallel = true;
@@ -29,7 +31,12 @@ public class BridgeManager : MonoBehaviour
     private List<NodeData> allNodeData = new List<NodeData>();
     private List<BeamData> allBeamData = new List<BeamData>();
 
-    void Awake() => cam = Camera.main;
+    void Awake()
+    {
+        cam = Camera.main;
+        if (_currentBeamPrefab == null) 
+            _currentBeamPrefab = beamPrefab;
+    } 
 
     void Update()
     {
@@ -40,6 +47,8 @@ public class BridgeManager : MonoBehaviour
 
     void HandleMouseDown()
     {
+        if (EventSystem.current.IsPointerOverGameObject()) return;
+        
         if (!Input.GetMouseButtonDown(0)) return;
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit) && hit.collider.CompareTag("Node"))
@@ -87,8 +96,8 @@ public class BridgeManager : MonoBehaviour
 
     void CreatePreviewBeam()
     {
-        if (beamPrefab == null) return;
-        previewBeam = Instantiate(beamPrefab);
+        if (_currentBeamPrefab == null) return;
+        previewBeam = Instantiate(_currentBeamPrefab);
         Collider col = previewBeam.GetComponent<Collider>();
         if (col != null) col.enabled = false;
     }
@@ -166,8 +175,10 @@ public class BridgeManager : MonoBehaviour
             CreateBeamInstance(a, a + offset, "Beam_Cross_Start");
             CreateBeamInstance(b, b + offset, "Beam_Cross_End");
 
-            // --- IZMJENA ZA CESTU (SAMO Y FIKSIRAN) ---
-            float roadY = -5.6f; // Tvoja visina glavnih čvorova
+            float roadY = -5.6f; 
+            
+            if (_currentBeamPrefab.name.ToLower().Contains("cable")) return;
+            
             if (Mathf.Abs(a.y - roadY) < 0.1f && Mathf.Abs(b.y - roadY) < 0.1f)
             {
                 roadBuilder?.AddRoadSegment(a, b, offset);
@@ -210,7 +221,7 @@ public class BridgeManager : MonoBehaviour
 
     GameObject CreateBeamInstance(Vector3 start, Vector3 end, string name)
     {
-        GameObject beam = Instantiate(beamPrefab);
+        GameObject beam = Instantiate(_currentBeamPrefab);
         beam.name = name;
         beam.tag = "Beam";
         UpdateBeam(beam, start, end);
@@ -269,5 +280,11 @@ public class BridgeManager : MonoBehaviour
             MeshRenderer mr = node.GetComponent<MeshRenderer>();
             if (mr != null) mr.enabled = false; 
         }
+    }
+    
+    public void SetBeamPrefab(GameObject newPrefab)
+    {
+        _currentBeamPrefab = newPrefab;
+        Debug.Log("Materijal promijenjen na: " + newPrefab.name);
     }
 }
