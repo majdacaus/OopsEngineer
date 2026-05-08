@@ -160,6 +160,16 @@ public class BridgeManager : MonoBehaviour
 
     void MakeBridgeSegment(Vector3 a, Vector3 b, NodeData fromNode, NodeData toNode)
     {
+        bool isHorizontal = Mathf.Abs(a.y - b.y) < 0.2f;
+        
+        float maxRoadHeight = -5.0f;
+        
+        if (isHorizontal && _currentBeamPrefab.name.ToLower().Contains("cable"))
+        {
+            Debug.LogWarning("Ne možeš graditi cestu od kablova!");
+            return; 
+        }
+        
         GameObject frontBeam = CreateBeamInstance(a, b, "Beam_Front");
         RegisterBeam(frontBeam, fromNode, toNode);
 
@@ -175,13 +185,14 @@ public class BridgeManager : MonoBehaviour
             CreateBeamInstance(a, a + offset, "Beam_Cross_Start");
             CreateBeamInstance(b, b + offset, "Beam_Cross_End");
 
-            float roadY = -5.6f; 
-            
-            if (_currentBeamPrefab.name.ToLower().Contains("cable")) return;
-            
-            if (Mathf.Abs(a.y - roadY) < 0.1f && Mathf.Abs(b.y - roadY) < 0.1f)
+            if (isHorizontal && a.y < maxRoadHeight)
             {
                 roadBuilder?.AddRoadSegment(a, b, offset);
+                Debug.Log("Gradi se cesta na donjem nivou.");
+            }
+            else if (isHorizontal && a.y >= maxRoadHeight)
+            {
+                Debug.Log("Gornja greda detektovana - preskačem gradnju ceste.");
             }
         }
     }
