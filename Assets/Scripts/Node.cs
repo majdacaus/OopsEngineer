@@ -55,5 +55,10 @@ public class Node : MonoBehaviour
         CurrentLoad = newLoad;
         OnLoadChanged?.Invoke(CurrentLoad);
     }
-    
+
+    public void CopySettingsFrom(Node otherNode)
+    {
+        this._isAnchor = otherNode._isAnchor;
+    }
+
 }

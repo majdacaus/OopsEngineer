@@ -248,7 +248,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
   m_PrefabInstance: {fileID: 1834226462}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &11283907
+--- !u!114 &11283913
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -257,15 +257,26 @@ MonoBehaviour:
   m_GameObject: {fileID: 11283902}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f6c0040090d76f44b83a62cd359dec8a, type: 3}
+  m_Script: {fileID: 11500000, guid: 89142d30ba05d4f4ea8a0eced6f44cd1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameScripts::Node
-  isAnchor: 0
-  isStartNode: 0
-  accumulatedLoad: 0
-  externalLoad: 0
-  connectedBeams: []
-  isRevealed: 0
+  _isAnchor: 0
+  _isStartNode: 0
+--- !u!114 &11283914
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 11283902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2e4ea88b2ce4714e846aaee4432d045, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::NodeVisualiser
+  _anchorColor: {r: 0, g: 0, b: 1, a: 1}
+  _defaultColor: {r: 1, g: 1, b: 1, a: 1}
+  _overloadColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!1 &19541630
 GameObject:
   m_ObjectHideFlags: 0
@@ -2296,7 +2307,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: GameScripts::TestLoad
   simulator: {fileID: 159517982}
-  loadNode: {fileID: 1508484966}
+  loadNode: {fileID: 0}
   testWeight: 2
 --- !u!4 &159517984
 Transform:
@@ -3611,12 +3622,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6c0040090d76f44b83a62cd359dec8a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameScripts::Node
-  isAnchor: 0
-  isStartNode: 0
+  isAnchor: 1
+  isStartNode: 1
   accumulatedLoad: 0
   externalLoad: 0
   connectedBeams: []
   isRevealed: 0
+--- !u!114 &242768525
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 242768518}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89142d30ba05d4f4ea8a0eced6f44cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::Node
+  _isAnchor: 1
+  _isStartNode: 1
+--- !u!114 &242768526
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 242768518}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2e4ea88b2ce4714e846aaee4432d045, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::NodeVisualiser
+  _anchorColor: {r: 0, g: 0, b: 1, a: 1}
+  _defaultColor: {r: 1, g: 1, b: 1, a: 1}
+  _overloadColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!1001 &243729035
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17424,7 +17464,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
   m_PrefabInstance: {fileID: 1613542703}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1508484966
+--- !u!114 &1508484972
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -17433,15 +17473,26 @@ MonoBehaviour:
   m_GameObject: {fileID: 1508484956}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f6c0040090d76f44b83a62cd359dec8a, type: 3}
+  m_Script: {fileID: 11500000, guid: 89142d30ba05d4f4ea8a0eced6f44cd1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameScripts::Node
-  isAnchor: 0
-  isStartNode: 0
-  accumulatedLoad: 0
-  externalLoad: 0
-  connectedBeams: []
-  isRevealed: 0
+  _isAnchor: 1
+  _isStartNode: 1
+--- !u!114 &1508484973
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1508484956}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2e4ea88b2ce4714e846aaee4432d045, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::NodeVisualiser
+  _anchorColor: {r: 0, g: 0, b: 1, a: 1}
+  _defaultColor: {r: 1, g: 1, b: 1, a: 1}
+  _overloadColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!1001 &1513044283
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18819,13 +18870,17 @@ PrefabInstance:
       propertyPath: isStartNode
       value: 1
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4551779252382767661, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1508484966}
+      insertIndex: 1
+      addedObject: {fileID: 1508484973}
+    - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
+      insertIndex: 3
+      addedObject: {fileID: 1508484972}
   m_SourcePrefab: {fileID: 100100000, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
 --- !u!1001 &1617267870
 PrefabInstance:
@@ -20568,20 +20623,24 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 1
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4551779252382767661, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1746570466}
+      insertIndex: 3
+      addedObject: {fileID: 1746570473}
+    - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
+      insertIndex: 4
+      addedObject: {fileID: 1746570472}
   m_SourcePrefab: {fileID: 100100000, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
 --- !u!1 &1746570465 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
   m_PrefabInstance: {fileID: 1746570464}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1746570466
+--- !u!114 &1746570472
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -20590,15 +20649,26 @@ MonoBehaviour:
   m_GameObject: {fileID: 1746570465}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f6c0040090d76f44b83a62cd359dec8a, type: 3}
+  m_Script: {fileID: 11500000, guid: 89142d30ba05d4f4ea8a0eced6f44cd1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameScripts::Node
-  isAnchor: 0
-  isStartNode: 0
-  accumulatedLoad: 0
-  externalLoad: 0
-  connectedBeams: []
-  isRevealed: 0
+  _isAnchor: 0
+  _isStartNode: 0
+--- !u!114 &1746570473
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1746570465}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2e4ea88b2ce4714e846aaee4432d045, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::NodeVisualiser
+  _anchorColor: {r: 0, g: 0, b: 1, a: 1}
+  _defaultColor: {r: 1, g: 1, b: 1, a: 1}
+  _overloadColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!1001 &1750280782
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -21454,13 +21524,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4551779252382767661, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1962737193}
+      insertIndex: 3
+      addedObject: {fileID: 1962737200}
+    - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
+      insertIndex: 4
+      addedObject: {fileID: 1962737199}
   m_SourcePrefab: {fileID: 100100000, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
 --- !u!1001 &1834226462
 PrefabInstance:
@@ -21518,13 +21592,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4551779252382767661, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 11283907}
+      insertIndex: 3
+      addedObject: {fileID: 11283914}
+    - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
+      insertIndex: 4
+      addedObject: {fileID: 11283913}
   m_SourcePrefab: {fileID: 100100000, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
 --- !u!1001 &1847332506
 PrefabInstance:
@@ -22552,20 +22630,24 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 1
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4551779252382767661, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1892133212}
+      insertIndex: 3
+      addedObject: {fileID: 1892133219}
+    - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
+      insertIndex: 4
+      addedObject: {fileID: 1892133218}
   m_SourcePrefab: {fileID: 100100000, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
 --- !u!1 &1892133211 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
   m_PrefabInstance: {fileID: 1892133210}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1892133212
+--- !u!114 &1892133218
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -22574,15 +22656,26 @@ MonoBehaviour:
   m_GameObject: {fileID: 1892133211}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f6c0040090d76f44b83a62cd359dec8a, type: 3}
+  m_Script: {fileID: 11500000, guid: 89142d30ba05d4f4ea8a0eced6f44cd1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameScripts::Node
-  isAnchor: 0
-  isStartNode: 0
-  accumulatedLoad: 0
-  externalLoad: 0
-  connectedBeams: []
-  isRevealed: 0
+  _isAnchor: 0
+  _isStartNode: 0
+--- !u!114 &1892133219
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1892133211}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2e4ea88b2ce4714e846aaee4432d045, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::NodeVisualiser
+  _anchorColor: {r: 0, g: 0, b: 1, a: 1}
+  _defaultColor: {r: 1, g: 1, b: 1, a: 1}
+  _overloadColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!1001 &1892371838
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22651,6 +22744,12 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
+      insertIndex: 2
+      addedObject: {fileID: 242768526}
+    - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
+      insertIndex: 3
+      addedObject: {fileID: 242768525}
     - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 242768519}
@@ -23157,20 +23256,24 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 1
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4551779252382767661, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1955680755}
+      insertIndex: 3
+      addedObject: {fileID: 1955680762}
+    - targetCorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
+      insertIndex: 4
+      addedObject: {fileID: 1955680761}
   m_SourcePrefab: {fileID: 100100000, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
 --- !u!1 &1955680754 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
   m_PrefabInstance: {fileID: 1955680753}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1955680755
+--- !u!114 &1955680761
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -23179,21 +23282,32 @@ MonoBehaviour:
   m_GameObject: {fileID: 1955680754}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f6c0040090d76f44b83a62cd359dec8a, type: 3}
+  m_Script: {fileID: 11500000, guid: 89142d30ba05d4f4ea8a0eced6f44cd1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameScripts::Node
-  isAnchor: 0
-  isStartNode: 0
-  accumulatedLoad: 0
-  externalLoad: 0
-  connectedBeams: []
-  isRevealed: 0
+  _isAnchor: 0
+  _isStartNode: 0
+--- !u!114 &1955680762
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1955680754}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2e4ea88b2ce4714e846aaee4432d045, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::NodeVisualiser
+  _anchorColor: {r: 0, g: 0, b: 1, a: 1}
+  _defaultColor: {r: 1, g: 1, b: 1, a: 1}
+  _overloadColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!1 &1962737192 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 792510717253729978, guid: a352de5698275de4bb23342bb0d9776d, type: 3}
   m_PrefabInstance: {fileID: 1830860217}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1962737193
+--- !u!114 &1962737199
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -23202,15 +23316,26 @@ MonoBehaviour:
   m_GameObject: {fileID: 1962737192}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f6c0040090d76f44b83a62cd359dec8a, type: 3}
+  m_Script: {fileID: 11500000, guid: 89142d30ba05d4f4ea8a0eced6f44cd1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameScripts::Node
-  isAnchor: 0
-  isStartNode: 0
-  accumulatedLoad: 0
-  externalLoad: 0
-  connectedBeams: []
-  isRevealed: 0
+  _isAnchor: 0
+  _isStartNode: 0
+--- !u!114 &1962737200
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1962737192}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2e4ea88b2ce4714e846aaee4432d045, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::NodeVisualiser
+  _anchorColor: {r: 0, g: 0, b: 1, a: 1}
+  _defaultColor: {r: 1, g: 1, b: 1, a: 1}
+  _overloadColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!1001 &1964088800
 PrefabInstance:
   m_ObjectHideFlags: 0

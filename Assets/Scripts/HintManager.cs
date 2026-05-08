@@ -3,15 +3,34 @@ using UnityEngine.UI;
 
 public class HintManager : MonoBehaviour
 {
-    public BridgeManager bridgeManager; // Prevuci BridgeManager ovdje
-    public Button hintButton;           // Tvoj UI Button
-    public int maxHints = 10;            // Koliko puta igrač smije tražiti pomoć
+    public BridgeManager bridgeManager; 
+    public Button hintButton;           
+    public int maxHints = 10;          
     private int hintsUsed = 0;
 
     void Start()
     {
         if (hintButton != null)
             hintButton.onClick.AddListener(ToggleHints);
+        
+        InitializeNodeVisibility();
+    }
+
+    void InitializeNodeVisibility()
+    {
+        Node[] allNodes = Object.FindObjectsByType<Node>(FindObjectsSortMode.None);
+
+        foreach (Node node in allNodes)
+        {
+            if (!node.IsAnchor && !node.IsStartNode)
+            {
+                node.Hide();
+            }
+            else
+            {
+                node.Reveal();
+            }
+        }
     }
 
     public void ToggleHints()
@@ -22,10 +41,17 @@ public class HintManager : MonoBehaviour
             return;
         }
 
-        // Pozivamo metodu u BridgeManageru koju smo ranije definisali
-        bridgeManager.ShowHintTemporarily(30.0f); // Hint traje 3 sekunde
+        bridgeManager.ShowHintTemporarily(30.0f); 
         hintsUsed++;
         
         Debug.Log($"Iskorišten hint {hintsUsed}/{maxHints}");
+    }
+    
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.H))
+        {
+            ToggleHints();
+        }
     }
 }

@@ -11,9 +11,12 @@ public class Beam : MonoBehaviour
     
     public Node StartNode => _startNode;
     public Node EndNode => _endNode;
+    
     public float MaxLoad => _maxLoad;
     public float CurrentStress => _currentStress;
     public float StressRatio => Mathf.Clamp01(_currentStress / _maxLoad);
+    public float Length;
+    public float Angle;
     
     public event Action<float> OnStressChanged;
 
@@ -22,6 +25,11 @@ public class Beam : MonoBehaviour
         _startNode = start;
         _endNode = end;
         _maxLoad = maxLoad;
+        
+        Vector3 dir = _endNode.transform.position - _startNode.transform.position;
+        Length = dir.magnitude;
+        Angle = Vector3.Angle(dir, new Vector3(dir.x, 0, dir.z));
+        
         _startNode.AddConnectionBeam(this);
         _endNode.AddConnectionBeam(this);
     }

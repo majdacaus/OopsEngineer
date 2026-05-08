@@ -19,17 +19,17 @@ public class BridgeManager : MonoBehaviour
     [SerializeField] bool autoBuildParallel = true;
 
     [Header("Sistemi")]
-    [SerializeField] StressSimulator stressSimulator;
+    //[SerializeField] StressSimulator stressSimulator;
     [SerializeField] RoadBuilder roadBuilder;
 
     Camera cam;
     GameObject previewBeam;
     bool isDragging = false;
-    Transform startNode;
+    Node startNode;
     Plane constructionPlane;
 
-    private List<NodeData> allNodeData = new List<NodeData>();
-    private List<BeamData> allBeamData = new List<BeamData>();
+    private List<Node> allNodeData = new List<Node>();
+    private List<Beam> allBeamData = new List<Beam>();
 
     void Awake()
     {
@@ -52,7 +52,14 @@ public class BridgeManager : MonoBehaviour
         if (!Input.GetMouseButtonDown(0)) return;
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit) && hit.collider.CompareTag("Node"))
-            StartDragging(hit.transform);
+        {
+            Node nodeComponent = hit.collider.GetComponent<Node>();
+
+            if (nodeComponent != null)
+            {
+                StartDragging(nodeComponent);
+            }
+        }
     }
 
     void HandleDragging()
@@ -72,11 +79,11 @@ public class BridgeManager : MonoBehaviour
         CleanupDrag();
     }
 
-    void StartDragging(Transform node)
+    void StartDragging(Node node)
     {
         startNode = node;
         isDragging = true;
-        constructionPlane = new Plane(Vector3.right, startNode.position);
+        constructionPlane = new Plane(Vector3.right, startNode.Position);
         CreatePreviewBeam();
     }
 
@@ -90,7 +97,7 @@ public class BridgeManager : MonoBehaviour
     Vector3 GetMousePoint(Ray ray, float enter)
     {
         Vector3 point = ray.GetPoint(enter);
-        point.x = startNode.position.x;
+        point.x = startNode.Position.x;
         return point;
     }
 
@@ -104,14 +111,14 @@ public class BridgeManager : MonoBehaviour
 
     void UpdatePreview(Vector3 worldPoint)
     {
-        NodeData snapTarget = FindClosestNodeData(worldPoint);
+        Node snapTarget = FindClosestNodeData(worldPoint);
         Vector3 finalPoint = snapTarget ? snapTarget.transform.position : worldPoint;
-        float dist = Vector3.Distance(startNode.position, finalPoint);
+        float dist = Vector3.Distance(startNode.Position, finalPoint);
 
         if (previewBeam != null)
         {
             SetPreviewColor(dist);
-            UpdateBeam(previewBeam, startNode.position, finalPoint);
+            UpdateBeam(previewBeam, startNode.Position, finalPoint);
         }
     }
 
@@ -123,19 +130,19 @@ public class BridgeManager : MonoBehaviour
 
     void FinishBuild(Vector3 endPos)
     {
-        NodeData snapTarget = FindClosestNodeData(endPos);
+        Node snapTarget = FindClosestNodeData(endPos);
         Vector3 finalPos = snapTarget ? snapTarget.transform.position : endPos;
-        float dist = Vector3.Distance(startNode.position, finalPos);
+        float dist = Vector3.Distance(startNode.Position, finalPos);
 
         if (!IsValidBeam(dist)) return;
 
-        NodeData fromData = startNode.GetComponent<NodeData>();
-        if (fromData == null) fromData = startNode.gameObject.AddComponent<NodeData>();
+        Node fromData = startNode.GetComponent<Node>();
+        if (fromData == null) fromData = startNode.gameObject.AddComponent<Node>();
         if (!allNodeData.Contains(fromData)) allNodeData.Add(fromData);
 
         if (snapTarget != null && snapTarget.transform != startNode)
         {
-            MakeBridgeSegment(startNode.position, snapTarget.transform.position, fromData, snapTarget);
+            MakeBridgeSegment(startNode.Position, snapTarget.transform.position, fromData, snapTarget);
         }
         else if (snapTarget == null && nodePrefab != null)
         {
@@ -145,20 +152,20 @@ public class BridgeManager : MonoBehaviour
 
     bool IsValidBeam(float dist) => dist <= maxBeamLength && dist > minBeamLength;
 
-    void CreateNodeAndConnect(Vector3 pos, NodeData fromData)
+    void CreateNodeAndConnect(Vector3 pos, Node fromData)
     {
         GameObject newNodeObj = Instantiate(nodePrefab, pos, Quaternion.identity);
         newNodeObj.tag = "Node";
 
-        NodeData toData = newNodeObj.GetComponent<NodeData>();
-        if (toData == null) toData = newNodeObj.AddComponent<NodeData>();
+        Node toData = newNodeObj.GetComponent<Node>();
+        if (toData == null) toData = newNodeObj.AddComponent<Node>();
         
         if (!allNodeData.Contains(toData)) allNodeData.Add(toData);
 
-        MakeBridgeSegment(startNode.position, newNodeObj.transform.position, fromData, toData);
+        MakeBridgeSegment(startNode.Position, newNodeObj.transform.position, fromData, toData);
     }
 
-    void MakeBridgeSegment(Vector3 a, Vector3 b, NodeData fromNode, NodeData toNode)
+    void MakeBridgeSegment(Vector3 a, Vector3 b, Node fromNode, Node toNode)
     {
         bool isHorizontal = Mathf.Abs(a.y - b.y) < 0.2f;
         
@@ -176,8 +183,8 @@ public class BridgeManager : MonoBehaviour
         if (autoBuildParallel)
         {
             Vector3 offset = new Vector3(bridgeWidth, 0, 0);
-            NodeData backFromNode = GetOrUpdateBackNode(fromNode, offset);
-            NodeData backToNode = GetOrUpdateBackNode(toNode, offset);
+            Node backFromNode = GetOrUpdateBackNode(fromNode, offset);
+            Node backToNode = GetOrUpdateBackNode(toNode, offset);
 
             GameObject backBeam = CreateBeamInstance(a + offset, b + offset, "Beam_Back");
             RegisterBeam(backBeam, backFromNode, backToNode);
@@ -197,35 +204,28 @@ public class BridgeManager : MonoBehaviour
         }
     }
 
-    NodeData GetOrUpdateBackNode(NodeData frontNode, Vector3 offset)
+    Node GetOrUpdateBackNode(Node frontNode, Vector3 offset)
     {
         Vector3 backPos = frontNode.transform.position + offset;
-        NodeData backNode = FindClosestNodeData(backPos);
+        Node backNode = FindClosestNodeData(backPos);
 
         if (backNode == null || Vector3.Distance(backNode.transform.position, backPos) > 0.1f)
         {
             GameObject obj = Instantiate(nodePrefab, backPos, Quaternion.identity);
             obj.tag = "Node";
-            backNode = obj.GetComponent<NodeData>() ?? obj.AddComponent<NodeData>();
-            backNode.isAnchor = frontNode.isAnchor; 
+            backNode = obj.GetComponent<Node>() ?? obj.AddComponent<Node>();
+            backNode.CopySettingsFrom(frontNode);
             if (!allNodeData.Contains(backNode)) allNodeData.Add(backNode);
         }
         return backNode;
     }
 
-    void RegisterBeam(GameObject beamObj, NodeData from, NodeData to)
+    void RegisterBeam(GameObject beamObj, Node from, Node to)
     {
-        BeamData bd = beamObj.GetComponent<BeamData>();
-        if (bd == null) bd = beamObj.AddComponent<BeamData>();
+        Beam bd = beamObj.GetComponent<Beam>();
+        if (bd == null) bd = beamObj.AddComponent<Beam>();
 
-        Vector3 dir = to.transform.position - from.transform.position;
-        bd.startNode = from;
-        bd.endNode = to;
-        bd.length = dir.magnitude;
-        bd.angle = Vector3.Angle(dir, new Vector3(dir.x, 0, dir.z));
-
-        if (!from.connectedBeams.Contains(bd)) from.connectedBeams.Add(bd);
-        if (!to.connectedBeams.Contains(bd)) to.connectedBeams.Add(bd);
+        bd.Initialize(from, to); 
 
         if (!allBeamData.Contains(bd)) allBeamData.Add(bd);
     }
@@ -250,13 +250,13 @@ public class BridgeManager : MonoBehaviour
         beam.transform.localScale = new Vector3(dir.magnitude, 0.2f, 0.2f);
     }
 
-    NodeData FindClosestNodeData(Vector3 pos)
+    Node FindClosestNodeData(Vector3 pos)
     {
-        NodeData[] allNodes = FindObjectsOfType<NodeData>();
-        NodeData closest = null;
+        Node[] allNodes = FindObjectsOfType<Node>();
+        Node closest = null;
         float min = snapRadius;
 
-        foreach (NodeData n in allNodes)
+        foreach (Node n in allNodes)
         {
             if (isDragging && n.transform == startNode) continue;
             float d = Vector3.Distance(pos, n.transform.position);
@@ -267,29 +267,25 @@ public class BridgeManager : MonoBehaviour
     
     public void ShowHintTemporarily(float duration)
     {
-        NodeData[] allNodes = Object.FindObjectsByType<NodeData>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        Node[] allNodes = Object.FindObjectsByType<Node>(FindObjectsInactive.Include, FindObjectsSortMode.None);
     
-        foreach (NodeData node in allNodes)
+        foreach (Node node in allNodes)
         {
-            if (!node.isAnchor) 
+            if (!node.IsAnchor) 
             {
-                MeshRenderer mr = node.GetComponent<MeshRenderer>();
-                if (mr != null)
-                {
-                    mr.enabled = true; 
-                    StartCoroutine(HideNodeAfterDelay(node, duration));
-                }
+               node.Reveal();
+               StartCoroutine(HideNodeAfterDelay(node, duration));
+                
             }
         }
     }
 
-    private System.Collections.IEnumerator HideNodeAfterDelay(NodeData node, float delay)
+    private System.Collections.IEnumerator HideNodeAfterDelay(Node node, float delay)
     {
         yield return new WaitForSeconds(delay);
-        if (node != null && !node.isAnchor)
+        if (node != null && !node.IsAnchor)
         {
-            MeshRenderer mr = node.GetComponent<MeshRenderer>();
-            if (mr != null) mr.enabled = false; 
+            node.Hide(); 
         }
     }
     

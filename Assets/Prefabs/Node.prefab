@@ -12,7 +12,8 @@ GameObject:
   - component: {fileID: 292918546291434763}
   - component: {fileID: 8658558818495029453}
   - component: {fileID: 5951396099030652700}
-  - component: {fileID: 4551779252382767661}
+  - component: {fileID: 2584020426584846555}
+  - component: {fileID: -5728510140319661720}
   m_Layer: 0
   m_Name: Node
   m_TagString: Node
@@ -113,7 +114,7 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &4551779252382767661
+--- !u!114 &2584020426584846555
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -122,12 +123,23 @@ MonoBehaviour:
   m_GameObject: {fileID: 792510717253729978}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f6c0040090d76f44b83a62cd359dec8a, type: 3}
+  m_Script: {fileID: 11500000, guid: d2e4ea88b2ce4714e846aaee4432d045, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: GameScripts::NodeData
-  isAnchor: 0
-  isStartNode: 0
-  accumulatedLoad: 0
-  externalLoad: 0
-  connectedBeams: []
-  isRevealed: 0
+  m_EditorClassIdentifier: GameScripts::NodeVisualiser
+  _anchorColor: {r: 0, g: 0, b: 1, a: 1}
+  _defaultColor: {r: 1, g: 1, b: 1, a: 1}
+  _overloadColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &-5728510140319661720
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 792510717253729978}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89142d30ba05d4f4ea8a0eced6f44cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::Node
+  _isAnchor: 0
+  _isStartNode: 0
