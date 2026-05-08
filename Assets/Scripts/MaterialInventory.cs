@@ -5,7 +5,6 @@ public class MaterialInventory : MonoBehaviour
 {
     public static MaterialInventory Instance { get; private set; }
 
-    // Persisted as comma-separated IDs in PlayerPrefs
     private const string PrefsKey = "OwnedMaterials";
 
     private HashSet<string> _ownedIds = new();
@@ -24,7 +23,6 @@ public class MaterialInventory : MonoBehaviour
 
     public bool IsLocked(MaterialData material)
     {
-        // Hook this up to your level/progression system
         int playerLevel = PlayerPrefs.GetInt("PlayerLevel", 1);
         return playerLevel < material.requiredLevel;
     }

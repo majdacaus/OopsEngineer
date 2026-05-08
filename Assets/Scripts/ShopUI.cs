@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -7,7 +8,7 @@ public class ShopUI : MonoBehaviour
 {
     [Header("Panel")]
     public GameObject shopPanel;
-    public Animator panelAnimator;         // optional — hook up a slide-in animator
+    public Animator panelAnimator;
     private static readonly int OpenHash = Animator.StringToHash("Open");
 
     [Header("Coin Display")]
@@ -19,11 +20,11 @@ public class ShopUI : MonoBehaviour
     public Button tabMetal;
     public Button tabAdvanced;
 
-    [Header("Tab Highlight Colors")]
-    public Color tabActiveColor = new Color(0.22f, 0.55f, 0.95f, 0.15f);
+    [Header("Tab Colors")]
+    public Color tabActiveColor = new(0.22f, 0.55f, 0.95f, 0.15f);
     public Color tabInactiveColor = Color.clear;
-    public Color tabActiveTextColor = new Color(0.18f, 0.47f, 0.87f);
-    public Color tabInactiveTextColor = new Color(0.5f, 0.5f, 0.5f);
+    public Color tabActiveTextColor = new(0.18f, 0.47f, 0.87f);
+    public Color tabInactiveTextColor = new(0.5f, 0.5f, 0.5f);
 
     [Header("Item Grid")]
     public Transform gridParent;
@@ -37,14 +38,15 @@ public class ShopUI : MonoBehaviour
     public TextMeshProUGUI toastText;
     public float toastDuration = 2f;
 
-    private MaterialCategory? _activeFilter = null; // null = All
+    private MaterialCategory? _activeFilter;
     private readonly List<ShopItemUI> _spawnedCards = new();
     private Coroutine _toastCoroutine;
 
-    // ───────── Lifecycle ─────────
-
     private void Awake()
     {
+        if (shopPanel == null || gridParent == null || itemCardPrefab == null)
+            Debug.LogError("ShopUI: Missing references in Inspector!", this);
+
         shopPanel.SetActive(false);
 
         tabAll.onClick.AddListener(() => SetFilter(null));
@@ -61,14 +63,18 @@ public class ShopUI : MonoBehaviour
     private void OnDisable()
     {
         CoinManager.OnCoinsChanged -= OnCoinsChanged;
-    }
 
-    // ───────── Open / Close ─────────
+        if (toastObject != null)
+            toastObject.SetActive(false);
+    }
 
     public void OpenShop()
     {
         shopPanel.SetActive(true);
-        if (panelAnimator != null) panelAnimator.SetBool(OpenHash, true);
+
+        if (panelAnimator != null)
+            panelAnimator.SetBool(OpenHash, true);
+
         RefreshBalance();
         SetFilter(null);
     }
@@ -81,10 +87,10 @@ public class ShopUI : MonoBehaviour
             shopPanel.SetActive(false);
     }
 
-    // Called by animator's exit event if you use one
-    public void OnCloseAnimationFinished() => shopPanel.SetActive(false);
-
-    // ───────── Tabs ─────────
+    public void OnCloseAnimationFinished()
+    {
+        shopPanel.SetActive(false);
+    }
 
     private void SetFilter(MaterialCategory? category)
     {
@@ -95,91 +101,106 @@ public class ShopUI : MonoBehaviour
 
     private void UpdateTabVisuals()
     {
-        SetTabStyle(tabAll,      _activeFilter == null);
-        SetTabStyle(tabWood,     _activeFilter == MaterialCategory.Wood);
-        SetTabStyle(tabMetal,    _activeFilter == MaterialCategory.Metal);
-        SetTabStyle(tabAdvanced, _activeFilter == MaterialCategory.Advanced);
+        SetTab(tabAll, _activeFilter == null);
+        SetTab(tabWood, _activeFilter == MaterialCategory.Wood);
+        SetTab(tabMetal, _activeFilter == MaterialCategory.Metal);
+        SetTab(tabAdvanced, _activeFilter == MaterialCategory.Advanced);
     }
 
-    private void SetTabStyle(Button tab, bool active)
+    private void SetTab(Button tab, bool active)
     {
-        var img = tab.GetComponent<Image>();
-        if (img != null) img.color = active ? tabActiveColor : tabInactiveColor;
-        var tmp = tab.GetComponentInChildren<TextMeshProUGUI>();
-        if (tmp != null) tmp.color = active ? tabActiveTextColor : tabInactiveTextColor;
-    }
+        if (tab == null) return;
 
-    // ───────── Grid ─────────
+        var img = tab.GetComponent<Image>();
+        if (img != null)
+            img.color = active ? tabActiveColor : tabInactiveColor;
+
+        var text = tab.GetComponentInChildren<TextMeshProUGUI>();
+        if (text != null)
+            text.color = active ? tabActiveTextColor : tabInactiveTextColor;
+    }
 
     private void PopulateGrid()
     {
-        // Clear old cards
         foreach (var card in _spawnedCards)
-            Destroy(card.gameObject);
+            if (card != null)
+                Destroy(card.gameObject);
+
         _spawnedCards.Clear();
 
         foreach (var mat in allMaterials)
         {
-            if (_activeFilter.HasValue && mat.category != _activeFilter.Value) continue;
+            if (_activeFilter.HasValue && mat.category != _activeFilter.Value)
+                continue;
 
             var go = Instantiate(itemCardPrefab, gridParent);
-            var itemUI = go.GetComponent<ShopItemUI>();
-            itemUI.Setup(mat, this);
-            _spawnedCards.Add(itemUI);
+            var ui = go.GetComponent<ShopItemUI>();
+
+            ui.Setup(mat, this);
+            _spawnedCards.Add(ui);
         }
     }
 
     private void RefreshAllCards()
     {
         foreach (var card in _spawnedCards)
-            card.Refresh();
+            if (card != null)
+                card.Refresh();
     }
-
-    // ───────── Purchase ─────────
 
     public void TryPurchase(MaterialData material)
     {
         if (MaterialInventory.Instance.IsOwned(material)) return;
         if (MaterialInventory.Instance.IsLocked(material)) return;
 
-        if (!material.freeStarter && !CoinManager.Instance.SpendCoins(material.coinPrice))
+        if (!material.freeStarter &&
+            !CoinManager.Instance.SpendCoins(material.coinPrice))
         {
             ShowToast("Not enough coins!");
             return;
         }
 
         MaterialInventory.Instance.Unlock(material);
+
         RefreshBalance();
         RefreshAllCards();
+
         ShowToast($"{material.displayName} unlocked!");
     }
 
-    // ───────── Coin Display ─────────
-
     private void RefreshBalance()
     {
-        balanceText.text = CoinManager.Instance.CurrentCoins.ToString();
+        if (balanceText != null)
+            balanceText.text = CoinManager.Instance.CurrentCoins.ToString();
     }
 
     private void OnCoinsChanged(int newAmount)
     {
-        balanceText.text = newAmount.ToString();
-        RefreshAllCards(); // re-evaluate affordability highlights
-    }
+        if (balanceText != null)
+            balanceText.text = newAmount.ToString();
 
-    // ───────── Toast ─────────
+        RefreshAllCards();
+    }
 
     private void ShowToast(string message)
     {
-        if (_toastCoroutine != null) StopCoroutine(_toastCoroutine);
+        if (_toastCoroutine != null)
+            StopCoroutine(_toastCoroutine);
+
         _toastCoroutine = StartCoroutine(ToastRoutine(message));
     }
 
-    private System.Collections.IEnumerator ToastRoutine(string message)
+    private IEnumerator ToastRoutine(string message)
     {
-        toastText.text = message;
-        toastObject.SetActive(true);
+        if (toastText != null)
+            toastText.text = message;
+
+        if (toastObject != null)
+            toastObject.SetActive(true);
+
         yield return new WaitForSeconds(toastDuration);
-        toastObject.SetActive(false);
+
+        if (toastObject != null)
+            toastObject.SetActive(false);
     }
 }
