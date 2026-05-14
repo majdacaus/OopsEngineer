@@ -13,6 +13,7 @@ public class RoadBuilder : MonoBehaviour
     [SerializeField] Material roadLineMaterial; 
 
     private List<GameObject> roadSegments = new List<GameObject>();
+
     public void AddRoadSegment(Vector3 nodeA, Vector3 nodeB, Vector3 widthDirection)
     {
         GameObject segment = CreateRoadMesh(nodeA, nodeB, widthDirection);
@@ -33,7 +34,7 @@ public class RoadBuilder : MonoBehaviour
         Vector3 v2 = b + w;        
         Vector3 v3 = b;           
 
-        Vector3 up = Vector3.up * 0.05f;
+        Vector3 up = Vector3.up * 0.12f;
         v0 += up; v1 += up; v2 += up; v3 += up;
 
         Mesh mesh = new Mesh();
@@ -67,7 +68,7 @@ public class RoadBuilder : MonoBehaviour
     void CreateCentreLine(Vector3 a, Vector3 b, Vector3 widthDir)
     {
         Vector3 halfW = widthDir.normalized * (roadWidth * 0.5f);
-        Vector3 up = Vector3.up * 0.06f; 
+        Vector3 up = Vector3.up * 0.13f; 
 
         Vector3 lineStart = a + halfW + up;
         Vector3 lineEnd   = b + halfW + up;
@@ -79,8 +80,8 @@ public class RoadBuilder : MonoBehaviour
         lr.positionCount = 2;
         lr.SetPosition(0, lineStart);
         lr.SetPosition(1, lineEnd);
-        lr.startWidth = 0.06f;
-        lr.endWidth   = 0.06f;
+        lr.startWidth = 0.25f;
+        lr.endWidth   = 0.25f;
         lr.material   = roadLineMaterial != null ? roadLineMaterial : CreateDefaultLineMaterial();
 
         lr.textureMode = LineTextureMode.Tile;

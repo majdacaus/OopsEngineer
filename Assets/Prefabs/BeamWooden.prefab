@@ -108,7 +108,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: GameScripts::Beam
   _startNode: {fileID: 0}
   _endNode: {fileID: 0}
-  _maxLoad: 100
+  _maxLoad: 8000
+  Length: 0
+  Angle: 0
+  MaterialType: 0
 --- !u!114 &-7496178755222109512
 MonoBehaviour:
   m_ObjectHideFlags: 0

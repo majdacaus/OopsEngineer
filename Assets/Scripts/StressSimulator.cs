@@ -1,144 +1,197 @@
-// using UnityEngine;
-// using System.Collections.Generic;
-// using System.Collections;
-//
-// public class StressSimulator : MonoBehaviour
-// {
-//     [Header("Simulacija")]
-//     [Tooltip("Koliko puta iteriramo distribuciju tereta (više = preciznije)")]
-//     [SerializeField] int iterations = 5;
-//
-//     [Tooltip("Vlastita težina svake grede po jedinici dužine")]
-//     [SerializeField] float beamWeightPerUnit = 0.1f;
-//
-//     [Tooltip("Koliko traje animacija pucanja grede")]
-//     [SerializeField] float breakAnimDuration = 0.5f;
-//
-//     [Header("Događaji")]
-//     public System.Action<BeamData> onBeamBroken;
-//     public System.Action onBridgeCollapsed; 
-//
-//
-//     public void RunSimulation(List<NodeData> nodes, List<BeamData> beams)
-//     {
-//         
-//         beams.RemoveAll(b => b == null || b.gameObject == null);
-//         nodes.RemoveAll(n => n == null || n.gameObject == null);
-//         
-//         foreach (var node in nodes)
-//         {
-//             if (node == null) continue;  
-//             node.accumulatedLoad = node.externalLoad;
-//         }
-//
-//         foreach (var beam in beams)
-//         {
-//             if (beam == null) continue;
-//             beam.stressRatio = 0f;
-//         }
-//
-//         foreach (var beam in beams)
-//         {
-//             float beamWeight = beam.length * beamWeightPerUnit;
-//             if (beam.startNode) beam.startNode.accumulatedLoad += beamWeight * 0.5f;
-//             if (beam.endNode)   beam.endNode.accumulatedLoad   += beamWeight * 0.5f;
-//         }
-//         for (int i = 0; i < iterations; i++)
-//         {
-//             PropagateLoads(nodes);
-//         }
-//         foreach (var beam in beams)
-//         {
-//             float totalLoad = 0f;
-//             if (beam.startNode) totalLoad += beam.startNode.accumulatedLoad * 0.5f;
-//             if (beam.endNode)   totalLoad += beam.endNode.accumulatedLoad   * 0.5f;
-//
-//             float capacity = beam.StrengthFactor;
-//             beam.stressRatio = totalLoad / Mathf.Max(capacity, 0.01f);
-//
-//             beam.UpdateVisual();
-//         }
-//
-//         CheckForBreaks(beams);
-//     }
-//
-//     void PropagateLoads(List<NodeData> nodes)
-//     {
-//         foreach (var node in nodes)
-//         {
-//             
-//             if (node == null) continue;  
-//
-//             if (node.isAnchor) continue;
-//             if (node.connectedBeams.Count == 0) continue;
-//
-//             node.connectedBeams.RemoveAll(b => b == null);
-//             float totalEfficiency = 0f;
-//             foreach (var beam in node.connectedBeams)
-//                 totalEfficiency += beam.EfficiencyFactor;
-//
-//             if (totalEfficiency <= 0f) continue;
-//
-//             float loadToDistribute = node.accumulatedLoad * 0.15f; // 40% se širi dalje
-//
-//             foreach (var beam in node.connectedBeams)
-//             {
-//                 float share = (beam.EfficiencyFactor / totalEfficiency) * loadToDistribute;
-//
-//                 // Šalji load na suprotni kraj grede
-//                 NodeData other = (beam.startNode == node) ? beam.endNode : beam.startNode;
-//                 if (other != null)
-//                     other.accumulatedLoad += share;
-//             }
-//         }
-//     }
-//
-//     void CheckForBreaks(List<BeamData> beams)
-//     {
-//         List<BeamData> broken = new List<BeamData>();
-//
-//         foreach (var beam in beams)
-//             if (beam.IsBroken()) broken.Add(beam);
-//
-//         if (broken.Count > 0)
-//             StartCoroutine(BreakBeams(broken));
-//     }
-//
-//     IEnumerator BreakBeams(List<BeamData> beams)
-//     {
-//         foreach (var beam in beams)
-//         {
-//             if (beam == null) continue; 
-//             
-//             onBeamBroken?.Invoke(beam);
-//
-//             // Animacija: greda pada/nestaje
-//             float t = 0f;
-//             Vector3 originalPos = beam.transform.position;
-//
-//             while (t < breakAnimDuration)
-//             {
-//                 if (beam == null) break;  
-//                 t += Time.deltaTime;
-//                 float progress = t / breakAnimDuration;
-//
-//                 // Pada dolje i nestaje
-//                 beam.transform.position = originalPos + Vector3.down * progress * 3f;
-//
-//                 Renderer r = beam.GetComponent<Renderer>();
-//                 if (r)
-//                 {
-//                     Color c = r.material.color;
-//                     c.a = 1f - progress;
-//                     r.material.color = c;
-//                 }
-//
-//                 yield return null;
-//             }
-//             if (beam != null)
-//             Destroy(beam.gameObject);
-//         }
-//
-//         onBridgeCollapsed?.Invoke();
-//     }
-// }
+using UnityEngine;
+using System.Collections.Generic;
+using System.Linq;
+
+public class StressSimulator : MonoBehaviour
+{
+    [Header("Simulacija")]
+    [SerializeField] float tickRate       = 0.05f;
+    [SerializeField] float breakThreshold = 1.15f;
+    [SerializeField] bool  enableBreaking = true;
+
+    [Header("Efekti")]
+    [SerializeField] GameObject breakParticlePrefab;
+
+    private readonly List<Beam>              registeredBeams = new();
+    private readonly List<Node>              registeredNodes = new();
+    private readonly List<VehicleWeightSource> vehicles      = new();
+
+    private readonly Dictionary<Node, int>   depthMap   = new();
+    private readonly Dictionary<Node, float> nodeForces = new();
+
+    private BeamStressVisualizer visualizer;
+
+    void Start()
+    {
+        visualizer = GetComponent<BeamStressVisualizer>() ?? gameObject.AddComponent<BeamStressVisualizer>();
+        InvokeRepeating(nameof(RunSimulation), 0.3f, tickRate);
+        Debug.Log("[StressSimulator] Pokrenut.");
+    }
+
+    public void RegisterBeam(Beam beam)
+    {
+        if (beam != null && !registeredBeams.Contains(beam))
+        {
+            registeredBeams.Add(beam);
+            Debug.Log($"[StressSimulator] Gred: {beam.name} | {beam.MaterialType} | MaxLoad={beam.MaxLoad:F0}");
+        }
+    }
+
+    public void RegisterNode(Node node)
+    {
+        if (node != null && !registeredNodes.Contains(node))
+            registeredNodes.Add(node);
+    }
+
+    public void RegisterVehicle(VehicleWeightSource v)
+    {
+        if (!vehicles.Contains(v)) vehicles.Add(v);
+    }
+
+    public void UnregisterVehicle(VehicleWeightSource v) => vehicles.Remove(v);
+
+    void RunSimulation()
+    {
+        if (registeredBeams.Count == 0) return;
+
+        ResetForces();
+        BuildDepthMap();
+        ApplyVehicleLoads();
+        PropagateForces();
+        ComputeAndApplyStress();
+        if (enableBreaking) CheckBreakage();
+
+        visualizer.UpdateVisuals(registeredBeams);
+    }
+
+    void ResetForces()
+    {
+        nodeForces.Clear();
+        foreach (Node n in registeredNodes) nodeForces[n] = 0f;
+        foreach (Beam b in registeredBeams) { if (!b.IsBroken()) b.UpdateStress(0f); }
+    }
+
+    void BuildDepthMap()
+    {
+        depthMap.Clear();
+        Queue<Node> queue = new();
+
+        foreach (Node n in registeredNodes.Where(n => n.IsAnchor))
+        {
+            depthMap[n] = 0;
+            queue.Enqueue(n);
+        }
+
+        while (queue.Count > 0)
+        {
+            Node current = queue.Dequeue();
+            foreach (Beam beam in current.GetConnectedBeams())
+            {
+                if (beam.IsBroken()) continue;
+                Node neighbour = beam.GetOtherNode(current);
+                if (neighbour == null || depthMap.ContainsKey(neighbour)) continue;
+                depthMap[neighbour] = depthMap[current] + 1;
+                queue.Enqueue(neighbour);
+            }
+        }
+    }
+
+    void ApplyVehicleLoads()
+    {
+        foreach (VehicleWeightSource vehicle in vehicles)
+        {
+            if (vehicle == null) continue;
+
+            Vector3 pos    = vehicle.GroundPoint;
+            float   force  = vehicle.WeightForce;
+            float   radius = vehicle.ContactRadius;
+
+            var nearby = registeredNodes
+                .Where(n => depthMap.ContainsKey(n) && Vector3.Distance(pos, n.transform.position) < radius)
+                .Select(n => (node: n, invDist: 1f / Mathf.Max(Vector3.Distance(pos, n.transform.position), 0.05f)))
+                .ToList();
+
+            float totalWeight = nearby.Sum(x => x.invDist);
+            if (totalWeight <= 0f) continue;
+
+            foreach (var (node, invDist) in nearby)
+                nodeForces[node] += force * (invDist / totalWeight);
+
+            Debug.Log($"[StressSimulator] {vehicle.gameObject.name}: {force:F0}N → {nearby.Count} čvorova");
+        }
+    }
+
+    void PropagateForces()
+    {
+        if (depthMap.Count == 0) return;
+
+        int maxDepth = depthMap.Values.Max();
+
+        for (int depth = maxDepth; depth > 0; depth--)
+        {
+            foreach (Node node in registeredNodes.Where(n => depthMap.ContainsKey(n) && depthMap[n] == depth))
+            {
+                if (!nodeForces.TryGetValue(node, out float force) || force <= 0f) continue;
+
+                var outgoing = node.GetConnectedBeams()
+                    .Where(b => !b.IsBroken() && depthMap.ContainsKey(b.GetOtherNode(node))
+                                && depthMap[b.GetOtherNode(node)] < depth)
+                    .ToList();
+
+                if (outgoing.Count == 0) continue;
+
+                float totalStiffness = outgoing.Sum(b => GetEffectiveStiffness(b, node));
+                if (totalStiffness <= 0f) continue;
+
+                foreach (Beam beam in outgoing)
+                {
+                    float eff = GetEffectiveStiffness(beam, node);
+                    if (eff <= 0f) continue;
+
+                    float share = eff / totalStiffness;
+                    float beamForce = force * share;
+
+                   // beam.UpdateStress(beamForce);
+
+                    Node next = beam.GetOtherNode(node);
+                    nodeForces[next] = nodeForces.GetValueOrDefault(next, 0f) + beamForce;
+                }
+            }
+        }
+    }
+
+    float GetEffectiveStiffness(Beam beam, Node fromNode)
+    {
+        if (!BeamMaterialProperties.IsCable(beam.MaterialType))
+            return BeamMaterialProperties.GetStiffness(beam.MaterialType);
+
+        Vector3 toOther = beam.GetOtherNode(fromNode).transform.position - fromNode.transform.position;
+        if (toOther.y > 0.05f)
+            return BeamMaterialProperties.GetStiffness(beam.MaterialType);
+
+        Debug.Log($"[StressSimulator] Kabel '{beam.name}' preskočen – kablovi prenose samo vlak.");
+        return 0f;
+    }
+
+    void ComputeAndApplyStress()
+    {
+    }
+
+    void CheckBreakage()
+    {
+        foreach (Beam beam in registeredBeams)
+        {
+            if (beam.IsBroken()) continue;
+            if (beam.StressRatio < breakThreshold) continue;
+
+            beam.UpdateStress(beam.MaxLoad + 1f);
+            Debug.LogWarning($"[StressSimulator] *** GRED PUKLA *** {beam.name} | {beam.MaterialType} | Napon: {beam.CurrentStress:F0}/{beam.MaxLoad:F0}");
+
+            Renderer r = beam.GetComponent<Renderer>();
+            if (r != null) r.material.color = new Color(0.12f, 0.04f, 0f);
+
+            if (breakParticlePrefab != null)
+                Instantiate(breakParticlePrefab, beam.transform.position, Quaternion.identity);
+        }
+    }
+}

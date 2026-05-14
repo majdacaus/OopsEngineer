@@ -119,8 +119,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: GameScripts::Beam
   _startNode: {fileID: 0}
   _endNode: {fileID: 0}
-  _costPerUnit: 45
-  _maxLoad: 100
+  _maxLoad: 25000
+  Length: 0
+  Angle: 0
+  MaterialType: 1
 --- !u!65 &8230764505062360332
 BoxCollider:
   m_ObjectHideFlags: 0

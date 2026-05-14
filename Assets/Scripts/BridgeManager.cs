@@ -9,56 +9,91 @@ public class BridgeManager : MonoBehaviour
     [Header("Osnovne Postavke")]
     [SerializeField] GameObject beamPrefab;
     [SerializeField] GameObject nodePrefab;
-    [SerializeField] float snapRadius = 1.0f;
-    [SerializeField] float maxBeamLength = 6.0f;
+    [SerializeField] float snapRadius    = 1.2f;
+    [SerializeField] float maxBeamLength = 3.5f;
     [SerializeField] float minBeamLength = 0.5f;
     [SerializeField] private GameObject _currentBeamPrefab;
-    
+
     [Header("3D/2D Hybrid")]
-    [SerializeField] float bridgeWidth = 3.0f;
-    [SerializeField] bool autoBuildParallel = true;
+    [SerializeField] float bridgeWidth      = 3.0f;
+    [SerializeField] bool  autoBuildParallel = true;
 
     [Header("Sistemi")]
-    //[SerializeField] StressSimulator stressSimulator;
     [SerializeField] RoadBuilder roadBuilder;
+    [SerializeField] StressSimulator stressSimulator;
+    public ConstructionAnalyzer analyzer;
+    
+    [Header("Fiksne Dužine (Snapping)")]
+    [SerializeField] float shortLength = 1.75f;
+    [SerializeField] float longLength = 3.5f;
 
-    Camera cam;
+    Camera     cam;
     GameObject previewBeam;
-    bool isDragging = false;
-    Node startNode;
-    Plane constructionPlane;
+    GameObject previewNode;
+    bool       isDragging = false;
+    Node       startNode;
+    Plane      constructionPlane;
 
-    private List<Node> allNodeData = new List<Node>();
-    private List<Beam> allBeamData = new List<Beam>();
+    private List<Node> allNodeData = new();
+    private List<Beam> allBeamData = new();
+    private BeamMaterialType selectedMaterial = BeamMaterialType.Wood;
 
     void Awake()
     {
         cam = Camera.main;
-        if (_currentBeamPrefab == null) 
+        if (_currentBeamPrefab == null)
             _currentBeamPrefab = beamPrefab;
-    } 
+
+        foreach (Node n in FindObjectsOfType<Node>())
+        {
+            if (!allNodeData.Contains(n)) allNodeData.Add(n);
+            stressSimulator?.RegisterNode(n);
+        }
+    }
 
     void Update()
     {
         HandleMouseDown();
         HandleDragging();
         HandleMouseUp();
+
+        if (Input.GetKeyDown(KeyCode.T))
+            TestMyBridge();
     }
+    Vector3 GetSnappedMousePoint(Vector3 rawMousePoint)
+    {
+        Vector3 direction = (rawMousePoint - startNode.transform.position).normalized;
+        float currentDist = Vector3.Distance(startNode.transform.position, rawMousePoint);
+
+        float threshold = (shortLength + longLength) / 2f; 
+    
+        float finalDist;
+        if (currentDist < threshold)
+        {
+            finalDist = shortLength;
+        }
+        else
+        {
+            finalDist = longLength;
+        }
+
+        return startNode.transform.position + direction * finalDist;
+    }
+    public void SetMaterialWood()  => selectedMaterial = BeamMaterialType.Wood;
+    public void SetMaterialSteel() => selectedMaterial = BeamMaterialType.Steel;
+    public void SetMaterialCable() => selectedMaterial = BeamMaterialType.Cable;
 
     void HandleMouseDown()
     {
         if (EventSystem.current.IsPointerOverGameObject()) return;
-        
         if (!Input.GetMouseButtonDown(0)) return;
+
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit) && hit.collider.CompareTag("Node"))
         {
             Node nodeComponent = hit.collider.GetComponent<Node>();
-
-            if (nodeComponent != null)
-            {
+            if (nodeComponent != null && nodeComponent.IsRevealed)
                 StartDragging(nodeComponent);
-            }
         }
     }
 
@@ -83,13 +118,15 @@ public class BridgeManager : MonoBehaviour
     {
         startNode = node;
         isDragging = true;
-        constructionPlane = new Plane(Vector3.right, startNode.Position);
+        constructionPlane = new Plane(-cam.transform.forward, startNode.Position);
+        
         CreatePreviewBeam();
     }
 
     void CleanupDrag()
     {
         if (previewBeam != null) Destroy(previewBeam);
+      //  if (previewNode != null) Destroy(previewNode);
         isDragging = false;
         startNode = null;
     }
@@ -97,7 +134,13 @@ public class BridgeManager : MonoBehaviour
     Vector3 GetMousePoint(Ray ray, float enter)
     {
         Vector3 point = ray.GetPoint(enter);
+       // point.y = startNode.Position.y;
         point.x = startNode.Position.x;
+        
+        float heightdiff = Mathf.Abs(point.y - startNode.Position.y);
+        
+        if(heightdiff< 0.5f)
+            point.y = startNode.Position.y;
         return point;
     }
 
@@ -105,178 +148,266 @@ public class BridgeManager : MonoBehaviour
     {
         if (_currentBeamPrefab == null) return;
         previewBeam = Instantiate(_currentBeamPrefab);
+       // previewNode = Instantiate(nodePrefab);
+        
+       // if (previewBeam.TryGetComponent(out Collider colBeam)) colBeam.enabled = false;
+       // if (previewNode.TryGetComponent(out Collider colNode)) colNode.enabled = false;
+        
         Collider col = previewBeam.GetComponent<Collider>();
         if (col != null) col.enabled = false;
     }
 
+    // void UpdatePreview(Vector3 worldPoint)
+    // {
+    //     Vector3 snappedPoint = GetSnappedMousePoint(worldPoint);
+    //     
+    //     Node    snapTarget = FindClosestNode(worldPoint);
+    //     Vector3 finalPoint = snapTarget ? snapTarget.transform.position : worldPoint;
+    //     float   dist       = Vector3.Distance(startNode.Position, finalPoint);
+    //
+    //     if (previewBeam == null) return;
+    //     SetPreviewColor(dist);
+    //     UpdateBeamTransform(previewBeam, startNode.Position, finalPoint);
+    // }
     void UpdatePreview(Vector3 worldPoint)
     {
-        Node snapTarget = FindClosestNodeData(worldPoint);
-        Vector3 finalPoint = snapTarget ? snapTarget.transform.position : worldPoint;
-        float dist = Vector3.Distance(startNode.Position, finalPoint);
+        if (previewBeam == null || startNode == null) return;
 
-        if (previewBeam != null)
+        Node snapTarget = FindClosestNode(worldPoint);
+        Vector3 finalPoint;
+
+        if (snapTarget != null)
         {
-            SetPreviewColor(dist);
-            UpdateBeam(previewBeam, startNode.Position, finalPoint);
+            finalPoint = snapTarget.transform.position;
         }
-    }
+        else
+        {
+            finalPoint = GetSnappedMousePoint(worldPoint);
+        }
 
-    void SetPreviewColor(float dist)
-    {
-        Renderer r = previewBeam.GetComponent<Renderer>();
-        if (r != null) r.material.color = (dist > maxBeamLength) ? Color.red : Color.white;
+        float dist = Vector3.Distance(startNode.Position, finalPoint);
+    
+        SetPreviewColor(dist);
+        UpdateBeamTransform(previewBeam, startNode.Position, finalPoint);
+        
+        // if (previewNode != null)
+        // {
+        //     previewNode.transform.position = finalPoint;
+        //     previewNode.SetActive(dist <= maxBeamLength); 
+        // }
     }
 
     void FinishBuild(Vector3 endPos)
     {
-        Node snapTarget = FindClosestNodeData(endPos);
-        Vector3 finalPos = snapTarget ? snapTarget.transform.position : endPos;
+        if (!isDragging || startNode == null) return;
+
+        Node snapTarget = FindClosestNode(endPos);
+        Vector3 finalPos;
+
+        if (snapTarget != null)
+        {
+            finalPos = snapTarget.transform.position;
+        }
+        else
+        {
+            finalPos = GetSnappedMousePoint(endPos);
+        }
+
         float dist = Vector3.Distance(startNode.Position, finalPos);
 
         if (!IsValidBeam(dist)) return;
 
-        Node fromData = startNode.GetComponent<Node>();
-        if (fromData == null) fromData = startNode.gameObject.AddComponent<Node>();
-        if (!allNodeData.Contains(fromData)) allNodeData.Add(fromData);
+        if (!allNodeData.Contains(startNode)) allNodeData.Add(startNode);
 
-        if (snapTarget != null && snapTarget.transform != startNode)
+        if (snapTarget != null && snapTarget != startNode)
         {
-            MakeBridgeSegment(startNode.Position, snapTarget.transform.position, fromData, snapTarget);
+            MakeBridgeSegment(startNode.Position, snapTarget.transform.position, startNode, snapTarget);
         }
         else if (snapTarget == null && nodePrefab != null)
         {
-            CreateNodeAndConnect(finalPos, fromData);
+            CreateNodeAndConnect(finalPos, startNode);
         }
     }
+    void SetPreviewColor(float dist)
+    {
+        Renderer r = previewBeam.GetComponent<Renderer>();
+        if (r != null) r.material.color = dist > maxBeamLength ? Color.red : Color.white;
+    }
+
+    // void FinishBuild(Vector3 endPos)
+    // {
+    //     Vector3 snappedPoint = GetSnappedMousePoint(endPos);
+    //     Node    snapTarget = FindClosestNode(endPos);
+    //     Vector3 finalPos   = snapTarget ? snapTarget.transform.position : endPos;
+    //     float   dist       = Vector3.Distance(startNode.Position, finalPos);
+    //
+    //     if (!IsValidBeam(dist)) return;
+    //
+    //     if (!allNodeData.Contains(startNode)) allNodeData.Add(startNode);
+    //
+    //     if (snapTarget != null && snapTarget != startNode)
+    //         MakeBridgeSegment(startNode.Position, snapTarget.transform.position, startNode, snapTarget);
+    //     else if (snapTarget == null && nodePrefab != null)
+    //         CreateNodeAndConnect(finalPos, startNode);
+    // }
 
     bool IsValidBeam(float dist) => dist <= maxBeamLength && dist > minBeamLength;
 
-    void CreateNodeAndConnect(Vector3 pos, Node fromData)
+    // void CreateNodeAndConnect(Vector3 pos, Node fromNode)
+    // {
+    //     GameObject newNodeObj = Instantiate(nodePrefab, pos, Quaternion.identity);
+    //     newNodeObj.tag = "Node";
+    //
+    //     Node toNode = newNodeObj.GetComponent<Node>() ?? newNodeObj.AddComponent<Node>();
+    //     //if (!allNodeData.Contains(toNode)) allNodeData.Add(toNode);
+    //     AddNode(toNode);
+    //     MakeBridgeSegment(startNode.Position, newNodeObj.transform.position, fromNode, toNode);
+    // }
+    
+    void CreateNodeAndConnect(Vector3 pos, Node fromNode)
     {
-        GameObject newNodeObj = Instantiate(nodePrefab, pos, Quaternion.identity);
-        newNodeObj.tag = "Node";
-
-        Node toData = newNodeObj.GetComponent<Node>();
-        if (toData == null) toData = newNodeObj.AddComponent<Node>();
+        Debug.Log($"[BridgeManager] Pokušavam stvoriti Node na: {pos}");
         
-        if (!allNodeData.Contains(toData)) allNodeData.Add(toData);
-
-        MakeBridgeSegment(startNode.Position, newNodeObj.transform.position, fromData, toData);
+        GameObject newNodeObj = Instantiate(nodePrefab, pos, Quaternion.identity);
+        if (newNodeObj == null) 
+        {
+            Debug.LogError("PREFAB NIJE DODIJELJEN U INSPECTORU!");
+            return;
+        }
+        
+        newNodeObj.tag = "Node";
+    
+        newNodeObj.transform.localScale = new Vector3(0.2988206f, 0.2988206f, 0.2988206f);
+        //newNodeObj.transform.localScale = Vector3.one * 0.6f;
+        Node toNode = newNodeObj.GetComponent<Node>();
+        if (toNode == null) toNode = newNodeObj.AddComponent<Node>();
+        if (newNodeObj.TryGetComponent(out MeshRenderer mr)) mr.enabled = true;
+        if (newNodeObj.TryGetComponent(out SphereCollider sc))
+        {
+            sc.enabled = true;
+            sc.isTrigger = false;
+        }
+        toNode.Reveal(); 
+    
+        AddNode(toNode);
+        MakeBridgeSegment(fromNode.Position, newNodeObj.transform.position, fromNode, toNode);
+        Debug.Log("Node uspješno kreiran i povezan.");
+    }
+    void AddNode(Node node)
+    {
+        if (allNodeData.Contains(node)) return;
+        allNodeData.Add(node);
+        stressSimulator?.RegisterNode(node);
     }
 
     void MakeBridgeSegment(Vector3 a, Vector3 b, Node fromNode, Node toNode)
     {
-        bool isHorizontal = Mathf.Abs(a.y - b.y) < 0.2f;
-        
+        bool  isHorizontal  = Mathf.Abs(a.y - b.y) < 0.2f;
         float maxRoadHeight = -5.0f;
-        
-        if (isHorizontal && _currentBeamPrefab.name.ToLower().Contains("cable"))
+
+        if (isHorizontal && selectedMaterial == BeamMaterialType.Cable)
         {
-            Debug.LogWarning("Ne možeš graditi cestu od kablova!");
-            return; 
+            Debug.LogWarning("[BridgeManager] Kablovi ne mogu biti horizontalne grede (putevi).");
+            return;
         }
-        
+
         GameObject frontBeam = CreateBeamInstance(a, b, "Beam_Front");
         RegisterBeam(frontBeam, fromNode, toNode);
 
-        if (autoBuildParallel)
-        {
-            Vector3 offset = new Vector3(bridgeWidth, 0, 0);
-            Node backFromNode = GetOrUpdateBackNode(fromNode, offset);
-            Node backToNode = GetOrUpdateBackNode(toNode, offset);
+        if (!autoBuildParallel) return;
 
-            GameObject backBeam = CreateBeamInstance(a + offset, b + offset, "Beam_Back");
-            RegisterBeam(backBeam, backFromNode, backToNode);
+        Vector3 offset      = new Vector3(bridgeWidth, 0, 0);
+        Node    backFromNode = GetOrUpdateBackNode(fromNode, offset);
+        Node    backToNode   = GetOrUpdateBackNode(toNode, offset);
 
-            CreateBeamInstance(a, a + offset, "Beam_Cross_Start");
-            CreateBeamInstance(b, b + offset, "Beam_Cross_End");
+        GameObject backBeam    = CreateBeamInstance(a + offset, b + offset, "Beam_Back");
+        GameObject crossStart  = CreateBeamInstance(a,          a + offset, "Beam_Cross_Start");
+        GameObject crossEnd    = CreateBeamInstance(b,          b + offset, "Beam_Cross_End");
 
-            if (isHorizontal && a.y < maxRoadHeight)
-            {
-                roadBuilder?.AddRoadSegment(a, b, offset);
-                Debug.Log("Gradi se cesta na donjem nivou.");
-            }
-            else if (isHorizontal && a.y >= maxRoadHeight)
-            {
-                Debug.Log("Gornja greda detektovana - preskačem gradnju ceste.");
-            }
-        }
+        RegisterBeam(backBeam,   backFromNode, backToNode);
+        RegisterBeam(crossStart, fromNode,     backFromNode);
+        RegisterBeam(crossEnd,   toNode,       backToNode);
+
+        if (isHorizontal && a.y < maxRoadHeight)
+            roadBuilder?.AddRoadSegment(a, b, offset);
     }
 
     Node GetOrUpdateBackNode(Node frontNode, Vector3 offset)
     {
-        Vector3 backPos = frontNode.transform.position + offset;
-        Node backNode = FindClosestNodeData(backPos);
+        Vector3 backPos  = frontNode.transform.position + offset;
+        Node    backNode = FindClosestNode(backPos);
 
         if (backNode == null || Vector3.Distance(backNode.transform.position, backPos) > 0.1f)
         {
             GameObject obj = Instantiate(nodePrefab, backPos, Quaternion.identity);
-            obj.tag = "Node";
+            obj.tag  = "Node";
+            
+            obj.transform.localScale = new Vector3(0.2988206f, 0.2988206f, 0.2988206f);
+            
             backNode = obj.GetComponent<Node>() ?? obj.AddComponent<Node>();
+            
+            if (obj.TryGetComponent(out MeshRenderer mr)) mr.enabled = true;
+            if (obj.TryGetComponent(out SphereCollider sc)) { sc.enabled = true; sc.isTrigger = false; }
+
             backNode.CopySettingsFrom(frontNode);
-            if (!allNodeData.Contains(backNode)) allNodeData.Add(backNode);
+            backNode.Reveal();
+            AddNode(backNode);
+            
         }
         return backNode;
     }
 
     void RegisterBeam(GameObject beamObj, Node from, Node to)
     {
-        Beam bd = beamObj.GetComponent<Beam>();
-        if (bd == null) bd = beamObj.AddComponent<Beam>();
-
-        bd.Initialize(from, to); 
-
+        Beam bd = beamObj.GetComponent<Beam>() ?? beamObj.AddComponent<Beam>();
+        bd.Initialize(from, to, selectedMaterial);
         if (!allBeamData.Contains(bd)) allBeamData.Add(bd);
+        stressSimulator?.RegisterBeam(bd);
     }
 
-    GameObject CreateBeamInstance(Vector3 start, Vector3 end, string name)
+    GameObject CreateBeamInstance(Vector3 start, Vector3 end, string beamName)
     {
         GameObject beam = Instantiate(_currentBeamPrefab);
-        beam.name = name;
-        beam.tag = "Beam";
-        UpdateBeam(beam, start, end);
+        beam.name = beamName;
+        beam.tag  = "Beam";
+        UpdateBeamTransform(beam, start, end);
         return beam;
     }
 
-    void UpdateBeam(GameObject beam, Vector3 a, Vector3 b)
+    void UpdateBeamTransform(GameObject beam, Vector3 a, Vector3 b)
     {
         if (beam == null) return;
         Vector3 dir = b - a;
         if (dir.magnitude <= 0.01f) return;
 
-        beam.transform.position = a + dir / 2f;
-        beam.transform.right = dir; 
+        beam.transform.position   = a + dir / 2f;
+        beam.transform.right      = dir;
         beam.transform.localScale = new Vector3(dir.magnitude, 0.2f, 0.2f);
     }
 
-    Node FindClosestNodeData(Vector3 pos)
+    Node FindClosestNode(Vector3 pos)
     {
-        Node[] allNodes = FindObjectsOfType<Node>();
-        Node closest = null;
-        float min = snapRadius;
+        Node  closest = null;
+        float min     = snapRadius;
 
-        foreach (Node n in allNodes)
+        foreach (Node n in allNodeData)
         {
-            if (isDragging && n.transform == startNode) continue;
+            if (isDragging && n == startNode) continue;
+            if (!n.IsRevealed) continue;
             float d = Vector3.Distance(pos, n.transform.position);
             if (d < min) { closest = n; min = d; }
         }
         return closest;
     }
-    
+
     public void ShowHintTemporarily(float duration)
     {
         Node[] allNodes = Object.FindObjectsByType<Node>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-    
         foreach (Node node in allNodes)
         {
-            if (!node.IsAnchor) 
-            {
-               node.Reveal();
-               StartCoroutine(HideNodeAfterDelay(node, duration));
-                
-            }
+            if (node.IsAnchor) continue;
+            node.Reveal();
+            StartCoroutine(HideNodeAfterDelay(node, duration));
         }
     }
 
@@ -284,14 +415,36 @@ public class BridgeManager : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         if (node != null && !node.IsAnchor)
-        {
-            node.Hide(); 
-        }
+            node.Hide();
     }
-    
+
     public void SetBeamPrefab(GameObject newPrefab)
     {
         _currentBeamPrefab = newPrefab;
-        Debug.Log("Materijal promijenjen na: " + newPrefab.name);
     }
+
+    public void TestMyBridge()
+    {
+        Debug.Log($"Ukupno nodova: {allNodeData.Count}");
+        foreach (Node n in allNodeData)
+            Debug.Log($"Node: {n.name} | IsAnchor: {n.IsAnchor} | Pos: {n.Position}");
+        
+        if (analyzer == null)
+        {
+            Debug.LogWarning("[BridgeManager] ConstructionAnalyzer nije dodijeljen.");
+            return;
+        }
+
+        AnalysisResult result = analyzer.PerformFullAnalysis(allNodeData, allBeamData);
+        Debug.Log($"--- BRIDGE ANALYSIS --- Health: {result.StructuralHealth}% | Points: {result.PotentialPoints}");
+
+        Debug.Log(result.IsReadyForTest()
+            ? "<color=green>Bridge is READY for simulation!</color>"
+            : "<color=red>Bridge is NOT ready!</color>");
+
+        foreach (string message in result.AdviceMessages)
+            Debug.Log("ADVICE: " + message);
+    }
+    
+ 
 }

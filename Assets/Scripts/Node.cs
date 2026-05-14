@@ -4,61 +4,67 @@ using UnityEngine;
 
 public class Node : MonoBehaviour
 {
-    
-    [SerializeField]
-    private bool _isAnchor; 
-    [SerializeField]
-    private bool _isStartNode; 
-    private readonly List<Beam> _connectedBeams = new();
+    [SerializeField] private bool _isAnchor;
+    [SerializeField] private bool _isStartNode;
 
-    public float CurrentLoad{get; private set;}
-    public float ExternalLoad{get; private set;}
-    public bool IsAnchor=>_isAnchor;
-    public bool IsStartNode => _isStartNode;
-    public bool IsRevealed { get; private set; }
-    public Vector3 Position => transform.position;
-    
-    public event Action OnNodeRevealed;
+    private readonly List<Beam> _connectedBeams = new();
+    private SphereCollider _collider;
+    public float   CurrentLoad  { get; private set; }
+    public float   ExternalLoad { get; private set; }
+    public bool    IsAnchor     => _isAnchor;
+    public bool    IsStartNode  => _isStartNode;
+    public bool    IsRevealed   { get; private set; }
+    public Vector3 Position     => transform.position;
+
+    public event Action        OnNodeRevealed;
     public event Action<float> OnLoadChanged;
-    public event Action OnNodeHidden;
-    
-    public void Hide()
+    public event Action        OnNodeHidden;
+    void Awake()
     {
-        if (_connectedBeams.Count > 0) return; 
-    
-        IsRevealed = false;
-        OnNodeHidden?.Invoke();
+        _collider = GetComponent<SphereCollider>();
     }
-    
     public void Initialize(bool isAnchor)
     {
         _isAnchor = isAnchor;
     }
-    
+
+    public void Reveal()
+    {
+        //if (IsRevealed) return;
+        IsRevealed = true;
+        //if (_collider != null) _collider.enabled = true;
+        
+        if (TryGetComponent(out MeshRenderer mr)) mr.enabled = true;
+        if (TryGetComponent(out Collider col)) col.enabled = true;
+        OnNodeRevealed?.Invoke();
+    }
+
+    public void Hide()
+    {
+        IsRevealed = false;
+        if (TryGetComponent(out MeshRenderer mr)) mr.enabled = false;
+        if (TryGetComponent(out Collider col)) col.enabled = false;
+        //if (_collider != null) _collider.enabled = false;
+        OnNodeHidden?.Invoke();
+    }
+
     public void AddConnectionBeam(Beam beam)
     {
         if (!_connectedBeams.Contains(beam))
-        {
             _connectedBeams.Add(beam);
-        }
     }
-    
-    public void Reveal()
-    {
-        if(IsRevealed) return;
-        IsRevealed = true;
-        OnNodeRevealed?.Invoke();
-    }
-    
+
     public void UpdateLoad(float newLoad)
     {
         CurrentLoad = newLoad;
         OnLoadChanged?.Invoke(CurrentLoad);
     }
 
-    public void CopySettingsFrom(Node otherNode)
+    public void CopySettingsFrom(Node other)
     {
-        this._isAnchor = otherNode._isAnchor;
+        _isAnchor = other._isAnchor;
     }
 
+    //public IReadOnlyList<Beam> GetConnectedBeams() => _connectedBeams;
+    public List<Beam> GetConnectedBeams() => _connectedBeams;
 }
