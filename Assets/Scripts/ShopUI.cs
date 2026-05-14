@@ -11,6 +11,10 @@ public class ShopUI : MonoBehaviour
     public Animator panelAnimator;
     private static readonly int OpenHash = Animator.StringToHash("Open");
 
+    [Header("Buttons")]
+    public GameObject closeShopButton;
+    public GameObject openShopButton;
+
     [Header("Coin Display")]
     public TextMeshProUGUI balanceText;
 
@@ -49,6 +53,9 @@ public class ShopUI : MonoBehaviour
 
         shopPanel.SetActive(false);
 
+        if (closeShopButton != null)
+            closeShopButton.SetActive(false);
+
         tabAll.onClick.AddListener(() => SetFilter(null));
         tabWood.onClick.AddListener(() => SetFilter(MaterialCategory.Wood));
         tabMetal.onClick.AddListener(() => SetFilter(MaterialCategory.Metal));
@@ -71,6 +78,12 @@ public class ShopUI : MonoBehaviour
     public void OpenShop()
     {
         shopPanel.SetActive(true);
+        Time.timeScale = 0f;
+        if (closeShopButton != null)
+        {
+            closeShopButton.SetActive(true);
+            openShopButton.SetActive(false);
+        }
 
         if (panelAnimator != null)
             panelAnimator.SetBool(OpenHash, true);
@@ -81,6 +94,14 @@ public class ShopUI : MonoBehaviour
 
     public void CloseShop()
     {
+        Time.timeScale = 1f; 
+
+        if (closeShopButton != null)
+        {
+            closeShopButton.SetActive(false);
+            openShopButton.SetActive(true);
+        }
+
         if (panelAnimator != null)
             panelAnimator.SetBool(OpenHash, false);
         else
@@ -95,17 +116,17 @@ public class ShopUI : MonoBehaviour
     private void SetFilter(MaterialCategory? category)
     {
         _activeFilter = category;
-        UpdateTabVisuals();
+       // UpdateTabVisuals();
         PopulateGrid();
     }
 
-    private void UpdateTabVisuals()
+   /* private void UpdateTabVisuals()
     {
         SetTab(tabAll, _activeFilter == null);
         SetTab(tabWood, _activeFilter == MaterialCategory.Wood);
         SetTab(tabMetal, _activeFilter == MaterialCategory.Metal);
         SetTab(tabAdvanced, _activeFilter == MaterialCategory.Advanced);
-    }
+    }*/
 
     private void SetTab(Button tab, bool active)
     {
