@@ -62,6 +62,7 @@ public class RoadBuilder : MonoBehaviour
         MeshCollider mc = obj.AddComponent<MeshCollider>();
         mc.sharedMesh = mesh;
         mc.convex = true;
+        obj.tag = "Road";
         return obj;
     }
 

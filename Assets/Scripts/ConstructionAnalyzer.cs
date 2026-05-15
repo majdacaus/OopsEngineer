@@ -10,8 +10,18 @@ public class ConstructionAnalyzer : MonoBehaviour
     
     public AnalysisResult PerformFullAnalysis(List<Node> nodes, List<Beam> beams)
     {
-        nodes = nodes.FindAll(n => n.gameObject.activeInHierarchy);
-        beams = beams.FindAll(b => b.gameObject.activeInHierarchy);
+        // nodes = nodes.FindAll(n => n.gameObject.activeInHierarchy && n.IsRevealed);
+        // beams = beams.FindAll(b => b.gameObject.activeInHierarchy);
+
+        if (nodes.Count == 0) return new AnalysisResult();
+        
+        float frontX = nodes[0].transform.position.x;
+
+        nodes = nodes.FindAll(n => n.gameObject.activeInHierarchy &&
+                                   n.IsRevealed && Mathf.Abs(n.transform.position.x - frontX) < TOLERANCE);
+        
+        beams = beams.FindAll(b => b.gameObject.activeInHierarchy &&
+                                    Mathf.Abs(b.transform.position.x - frontX) < TOLERANCE);
         
         AnalysisResult res = new AnalysisResult();
         if (nodes.Count < 2) return res;
@@ -53,24 +63,18 @@ public class ConstructionAnalyzer : MonoBehaviour
     private float CalculateCost(List<Beam> beams)
     {
         float total = 0f;
-        float steelT = 0, woodT = 0, cableT = 0;
         foreach (Beam b in beams)
         {
+            float budgetWeight = (b.Length < 2.5f) ? 1.0f : 2.0f;
+
             float multiplier = b.MaterialType switch
             {
                 BeamMaterialType.Steel => 50f,
                 BeamMaterialType.Cable => 30f,
                 _                      => 10f
             };
-            float cost = b.Length * multiplier;
-            total += cost;
-            
-            //zbir za debug
-            if (b.MaterialType == BeamMaterialType.Steel) steelT += cost;
-            else if (b.MaterialType == BeamMaterialType.Cable) cableT += cost;
-            else woodT += cost;
+            total += budgetWeight * multiplier;
         }
-        Debug.Log($"<color=cyan>BUDŽET INFO:</color> Čelik: ${steelT:F0}, Drvo: ${woodT:F0}, Kablovi: ${cableT:F0}");
         return total;
     }
 
@@ -111,23 +115,84 @@ public class ConstructionAnalyzer : MonoBehaviour
         return false;
     }
 
+    // private bool CheckIfFloating(List<Node> allNodes)
+    // {
+    //     HashSet<Node> connected = new();
+    //     Queue<Node> queue = new();
+    //
+    //     foreach (Node node in allNodes)
+    //     {
+    //         if (!node.IsAnchor) continue;
+    //         queue.Enqueue(node);
+    //         connected.Add(node);
+    //     }
+    //
+    //     while (queue.Count > 0)
+    //     {
+    //         // Node current = queue.Dequeue();
+    //         // foreach (Beam beam in current.GetConnectedBeams())
+    //         // {
+    //         //     Node next = beam.StartNode == current ? beam.EndNode : beam.StartNode;
+    //         //     if (next != null && !connected.Contains(next))
+    //         //     {
+    //         //         connected.Add(next);
+    //         //         queue.Enqueue(next);
+    //         //     }
+    //         // }
+    //
+    //         Node current = queue.Dequeue();
+    //         foreach (Beam beam in current.GetConnectedBeams())
+    //         {
+    //             if (beam.StartNode == null || beam.EndNode == null) continue;
+    //
+    //             Node next = beam.StartNode == current ? beam.EndNode : beam.StartNode;
+    //             if (next != null && !connected.Contains(next))
+    //             {
+    //                 connected.Add(next);
+    //                 queue.Enqueue(next);
+    //             }
+    //         }
+    //
+    //         if (connected.Count < allNodes.Count)
+    //         {
+    //             foreach (Node n in allNodes)
+    //             {
+    //                 if (!connected.Contains(n))
+    //                     Debug.LogError(
+    //                         $"[ANALYSIS] Čvor {n.gameObject.name} na {n.transform.position} NIJE POVEZAN sa temeljima!");
+    //             }
+    //
+    //         }
+    //             return true;
+    //
+    //         // return connected.Count < allNodes.Count;
+    //     }
+    //         return false;
+    // }
+    
     private bool CheckIfFloating(List<Node> allNodes)
     {
         HashSet<Node> connected = new();
-        Queue<Node>   queue     = new();
+        Queue<Node> queue = new();
 
         foreach (Node node in allNodes)
         {
-            if (!node.IsAnchor) continue;
-            queue.Enqueue(node);
-            connected.Add(node);
+            if (node.IsAnchor)
+            {
+                queue.Enqueue(node);
+                connected.Add(node);
+            }
         }
+
+        if (connected.Count == 0) return true;
 
         while (queue.Count > 0)
         {
             Node current = queue.Dequeue();
             foreach (Beam beam in current.GetConnectedBeams())
             {
+                if (beam == null || beam.StartNode == null || beam.EndNode == null) continue;
+
                 Node next = beam.StartNode == current ? beam.EndNode : beam.StartNode;
                 if (next != null && !connected.Contains(next))
                 {
@@ -136,7 +201,18 @@ public class ConstructionAnalyzer : MonoBehaviour
                 }
             }
         }
-        return connected.Count < allNodes.Count;
+
+        if (connected.Count < allNodes.Count)
+        {
+            foreach (Node n in allNodes)
+            {
+                if (!connected.Contains(n))
+                    Debug.LogError($"[ANALYSIS] Čvor {n.gameObject.name} NIJE POVEZAN!");
+            }
+            return true;
+        }
+
+        return false; 
     }
 
     private bool CheckMaterialLimits(List<Beam> beams)
@@ -152,12 +228,50 @@ public class ConstructionAnalyzer : MonoBehaviour
 
     private bool CheckTriangulation(List<Node> nodes)
     {
+        if (nodes.Count == 0) return false;
+        float frontX = nodes[0].transform.position.x;
+        const float xTolerance = 0.15f;
+        
+        List<Node> nonAnchors = nodes.FindAll(n => !n.IsAnchor
+                                                   &&
+                                                   Mathf.Abs(n.transform.position.x - frontX) < xTolerance);
+        if (nonAnchors.Count == 0) return false;
+
+        bool IsOnFrontPlane(Beam b) =>
+            b != null && b.StartNode != null && b.EndNode != null &&
+            Mathf.Abs(b.StartNode.transform.position.x - frontX) < xTolerance &&
+            Mathf.Abs(b.EndNode.transform.position.x - frontX) < xTolerance;
+        
         foreach (Node node in nodes)
         {
-            if (node.IsAnchor) continue;
-            if (node.GetConnectedBeams().Count < 1) return true;
-        }
-        return false;
+            List<Node> neighbors = new();
+            
+            foreach (Beam b in node.GetConnectedBeams())
+            {
+                //if (b == null || b.StartNode == null || b.EndNode == null) continue;
+                if (!IsOnFrontPlane(b)) continue;
+                Node other = b.StartNode == node ? b.EndNode : b.StartNode;
+                if (other != null && nodes.Contains(other))
+                    neighbors.Add(other);
+            }
+
+            bool inTriangle = false;
+            for (int i = 0; i < neighbors.Count && !inTriangle; i++)
+            {
+                for (int j = i + 1; j < neighbors.Count && !inTriangle; j++)
+                {
+                    bool connected = neighbors[i].GetConnectedBeams()
+                        .Exists(b=> IsOnFrontPlane(b) &&
+                                     (b.StartNode == neighbors[j] || b.EndNode == neighbors[j]));
+                
+                    if (connected) inTriangle = true; 
+                }
+            }
+            
+            if(!inTriangle) return true;
+        } 
+
+        return false; 
     }
 
     public float CalculateStructuralHealth(AnalysisResult res)
@@ -166,7 +280,7 @@ public class ConstructionAnalyzer : MonoBehaviour
 
         if (!res.PathExists)             health -= 40f;
         if (res.IsFloating)              health -= 30f;
-        if (res.IsLackingTriangles)      health -= 20f;
+        if (res.IsLackingTriangles)      health -= 60f;
         if (res.HasWeakMaterials)        health -= 15f;
         if (res.CurrentCost > maxBudget) health -= 10f;
 

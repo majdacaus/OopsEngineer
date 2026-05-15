@@ -13,8 +13,8 @@ public class Beam : MonoBehaviour
     public Node  EndNode      => _endNode;
     public float MaxLoad      => _maxLoad;
     public float CurrentStress => _currentStress;
-    public float StressRatio  => Mathf.Clamp01(_currentStress / _maxLoad);
-
+    public float StressRatio => _maxLoad > 0f ? _currentStress / _maxLoad : 0f;
+    
     public float           Length;
     public float           Angle;
     public BeamMaterialType MaterialType;
@@ -33,17 +33,36 @@ public class Beam : MonoBehaviour
     
     public void Initialize(Node start, Node end, BeamMaterialType material, float maxLoad = 100f)
     {
-        _startNode   = start;
-        _endNode     = end;
-        _maxLoad     = maxLoad;
+        this._startNode   = start;
+        this._endNode     = end;
+        //_maxLoad     = maxLoad;
         MaterialType = material;
 
         Vector3 dir = _endNode.transform.position - _startNode.transform.position;
         Length = dir.magnitude;
         Angle  = Vector3.Angle(dir, new Vector3(dir.x, 0, dir.z));
 
+        if (maxLoad <= 0f)
+        {
+            _maxLoad = material switch
+            {
+                BeamMaterialType.Steel => 8000f,
+                BeamMaterialType.Cable => 12000f,
+                _                      => 3000f  
+            };
+        }
+        else
+        {
+            _maxLoad = maxLoad;
+        }
+        
         _startNode.AddConnectionBeam(this);
         _endNode.AddConnectionBeam(this);
+        
+        StressSimulator sim = FindFirstObjectByType<StressSimulator>();
+        if (sim != null) sim.RegisterBeam(this);
+        
+        Debug.Log($"Greda spojena između {start.name} i {end.name}");
     }
     public Node GetOtherNode(Node from) => from == _startNode ? _endNode : _startNode;
     public void UpdateStress(float newStress)

@@ -44,10 +44,27 @@ public class BridgeManager : MonoBehaviour
         if (_currentBeamPrefab == null)
             _currentBeamPrefab = beamPrefab;
 
-        foreach (Node n in FindObjectsOfType<Node>())
+        Node[] existingNodes = Object.FindObjectsByType<Node>(FindObjectsSortMode.None);
+        
+        foreach (Node n in existingNodes)
         {
-            if (!allNodeData.Contains(n)) allNodeData.Add(n);
-            stressSimulator?.RegisterNode(n);
+            // if (!allNodeData.Contains(n)) allNodeData.Add(n);
+            // stressSimulator?.RegisterNode(n);
+            
+            if (n.IsAnchor || n.IsRevealed)
+            {
+                AddNode(n);
+            }
+            
+            //ako dodam predefinisane gredee
+            // Beam[] existingBeams = Object.FindObjectsByType<Beam>(FindObjectsSortMode.None);
+            // foreach (Beam b in existingBeams)
+            // {
+            //     if (!allBeamData.Contains(b)) allBeamData.Add(b);
+            //     stressSimulator?.RegisterBeam(b);
+            // }
+            
+            Debug.Log($"[BridgeManager] Inicijalizacija završena. Pronađeno {allNodeData.Count} čvorova");
         }
     }
 
@@ -357,14 +374,50 @@ public class BridgeManager : MonoBehaviour
         return backNode;
     }
 
+    // void RegisterBeam(GameObject beamObj, Node from, Node to)
+    // {
+    //     // Beam bd = beamObj.GetComponent<Beam>() ?? beamObj.AddComponent<Beam>();
+    //     // bd.Initialize(from, to, selectedMaterial);
+    //     // if (!allBeamData.Contains(bd)) allBeamData.Add(bd);
+    //     // stressSimulator?.RegisterBeam(bd);
+    //     
+    //     if (beamObj == null) return;
+    //
+    //     Beam bd = beamObj.GetComponent<Beam>();
+    //     if (bd == null) 
+    //     {
+    //         bd = beamObj.AddComponent<Beam>();
+    //         Debug.Log("<color=orange>Upozorenje:</color> Prefab grede nije imao Beam skriptu, dodana je automatski.");
+    //         
+    //     }
+    //     
+    //     bd.Initialize(from, to, selectedMaterial);
+    //
+    //     if (!allBeamData.Contains(bd)) allBeamData.Add(bd);
+    //     stressSimulator?.RegisterBeam(bd);
+    //
+    //     Debug.Log($"<color=green>SUCCESS:</color> Greda registrovana između {from.name} i {to.name}");
+    // }
+
     void RegisterBeam(GameObject beamObj, Node from, Node to)
     {
-        Beam bd = beamObj.GetComponent<Beam>() ?? beamObj.AddComponent<Beam>();
-        bd.Initialize(from, to, selectedMaterial);
-        if (!allBeamData.Contains(bd)) allBeamData.Add(bd);
-        stressSimulator?.RegisterBeam(bd);
-    }
+        if (beamObj == null) return;
 
+        Beam bd = beamObj.GetComponent<Beam>() ?? beamObj.AddComponent<Beam>();
+    
+        bd.Initialize(from, to, selectedMaterial, -1f); 
+
+        if (!allBeamData.Contains(bd)) allBeamData.Add(bd);
+    
+        if (stressSimulator != null)
+        {
+            stressSimulator.RegisterNode(from);
+            stressSimulator.RegisterNode(to);
+            stressSimulator.RegisterBeam(bd);
+        }
+
+        Debug.Log($"<color=green>[BridgeManager]</color> Greda uspješno registrovana: {from.name} -> {to.name}");
+    }
     GameObject CreateBeamInstance(Vector3 start, Vector3 end, string beamName)
     {
         GameObject beam = Instantiate(_currentBeamPrefab);
@@ -425,6 +478,10 @@ public class BridgeManager : MonoBehaviour
 
     public void TestMyBridge()
     {
+        allNodeData = new List<Node>(FindObjectsOfType<Node>())
+            .FindAll(n => n.IsRevealed || n.IsAnchor);
+        allBeamData = new List<Beam>(FindObjectsOfType<Beam>());
+
         Debug.Log($"Ukupno nodova: {allNodeData.Count}");
         foreach (Node n in allNodeData)
             Debug.Log($"Node: {n.name} | IsAnchor: {n.IsAnchor} | Pos: {n.Position}");

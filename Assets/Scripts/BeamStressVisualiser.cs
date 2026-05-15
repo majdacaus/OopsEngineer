@@ -7,8 +7,55 @@ public class BeamStressVisualizer : MonoBehaviour
     [SerializeField] Gradient stressGradient;
     [SerializeField] float    reportInterval = 0.5f;
 
+    [SerializeField] float    shakeThreshold = 0.7f;
+    [SerializeField] float    shakeAmount = 0.05f;
+    
     private float lastReport;
 
+    private Dictionary<Beam, Vector3> originalPositions = new Dictionary<Beam, Vector3>();
+    
+    public void UpdateVisuals(List<Beam> beams)
+    {
+        foreach (Beam beam in beams)
+        {
+            if (beam == null) continue;
+
+            if (!originalPositions.ContainsKey(beam))
+                originalPositions[beam] = beam.transform.localPosition;
+
+            if (beam.IsBroken()) continue;
+            Renderer r = beam.GetComponent<Renderer>();
+            if (r != null) r.material.color = stressGradient.Evaluate(beam.StressRatio);
+
+            HandleBeamShake(beam);
+        }
+
+        if (Time.time - lastReport < reportInterval) return;
+        lastReport = Time.time;
+        LogReport(beams);
+    }
+    
+    private void HandleBeamShake(Beam beam)
+    {
+        float ratio = beam.StressRatio;
+
+        if (ratio > shakeThreshold)
+        {float currentShake = (ratio - shakeThreshold) * shakeAmount;
+            
+            Vector3 randomOffset = new Vector3(
+                Random.Range(-currentShake, currentShake),
+                Random.Range(-currentShake, currentShake),
+                Random.Range(-currentShake, currentShake)
+            );
+
+            beam.transform.localPosition = originalPositions[beam] + randomOffset;
+        }
+        else
+        {
+            beam.transform.localPosition = originalPositions[beam];
+        }
+    }
+            
     void Reset()
     {
         stressGradient = new Gradient();
@@ -28,20 +75,34 @@ public class BeamStressVisualizer : MonoBehaviour
         );
     }
 
-    public void UpdateVisuals(List<Beam> beams)
+    public void RegisterBeam(Beam beam)
+    {
+        if(beam != null && !originalPositions.ContainsKey(beam))
+            originalPositions[beam] = beam.transform.localPosition;
+    }
+    public void TriggerCollapse(List<Beam> beams, List<Node> nodes)
     {
         foreach (Beam beam in beams)
         {
-            if (beam == null || beam.IsBroken()) continue;
-            Renderer r = beam.GetComponent<Renderer>();
-            if (r != null) r.material.color = stressGradient.Evaluate(beam.StressRatio);
+            if (beam == null) continue;
+            Rigidbody rb = beam.GetComponent<Rigidbody>();
+            if (rb == null) rb = beam.gameObject.AddComponent<Rigidbody>();
+            rb.isKinematic = false;
+            rb.useGravity  = true;
+    
+            rb.AddForce(Random.insideUnitSphere * 2f, ForceMode.Impulse);
         }
-
-        if (Time.time - lastReport < reportInterval) return;
-        lastReport = Time.time;
-        LogReport(beams);
+    
+        foreach (Node node in nodes)
+        {
+            if (node == null || node.IsAnchor) continue; 
+            Rigidbody rb = node.GetComponent<Rigidbody>();
+            if (rb == null) rb = node.gameObject.AddComponent<Rigidbody>();
+            rb.isKinematic = false;
+            rb.useGravity  = true;
+        }
     }
-
+  
     void LogReport(List<Beam> beams)
     {
         Beam worst = beams

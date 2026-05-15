@@ -3,15 +3,16 @@ using UnityEngine;
 public class VehicleWeightSource : MonoBehaviour
 {
     [SerializeField] float vehicleMass   = 1500f;
-    [SerializeField] float contactRadius = 3.5f;
+    [SerializeField] float contactRadius = 7.2f;
 
     public float   ContactRadius => contactRadius;
+    private StressSimulator _sim;
     public float   WeightForce   => vehicleMass * Mathf.Abs(Physics.gravity.y);
     public Vector3 GroundPoint
     {
         get
         {
-            if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, 10f))
+            if (Physics.Raycast(transform.position + Vector3.up*0.5f, Vector3.down, out RaycastHit hit, 10f))
                 return hit.point;
             return transform.position;
         }
@@ -19,10 +20,14 @@ public class VehicleWeightSource : MonoBehaviour
 
     void Start()
     {
-        StressSimulator sim = FindObjectOfType<StressSimulator>();
-        if (sim != null)
+        Debug.Log($"[Vehicle] Start() pozvan na {gameObject.name}");
+        _sim = FindObjectOfType<StressSimulator>();
+        Debug.Log($"[Vehicle] Simulator pronađen: {(_sim != null ? "DA" : "NE")}");
+        
+        _sim = FindObjectOfType<StressSimulator>();
+        if (_sim != null)
         {
-            sim.RegisterVehicle(this);
+            _sim.RegisterVehicle(this);
             Debug.Log($"[Vehicle] {gameObject.name} | masa={vehicleMass}kg | sila={WeightForce:F0}N");
         }
         else
@@ -33,7 +38,8 @@ public class VehicleWeightSource : MonoBehaviour
 
     void OnDestroy()
     {
-        FindObjectOfType<StressSimulator>()?.UnregisterVehicle(this);
+        _sim?.UnregisterVehicle(this);
+        
     }
 
     void OnDrawGizmosSelected()
