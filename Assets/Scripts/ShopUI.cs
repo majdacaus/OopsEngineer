@@ -18,33 +18,9 @@ public class ShopUI : MonoBehaviour
     [Header("Coin Display")]
     public TextMeshProUGUI balanceText;
 
-    [Header("Tabs")]
-    public Button tabAll;
-    public Button tabWood;
-    public Button tabMetal;
-    public Button tabAdvanced;
-
-    [Header("Tab Colors")]
-    public Color tabActiveColor = new(0.22f, 0.55f, 0.95f, 0.15f);
-    public Color tabInactiveColor = Color.clear;
-    public Color tabActiveTextColor = new(0.18f, 0.47f, 0.87f);
-    public Color tabInactiveTextColor = new(0.5f, 0.5f, 0.5f);
-
     [Header("Item Grid")]
     public Transform gridParent;
     public GameObject itemCardPrefab;
-
-    [Header("Materials")]
-    public List<MaterialData> allMaterials;
-
-    [Header("Toast")]
-    public GameObject toastObject;
-    public TextMeshProUGUI toastText;
-    public float toastDuration = 2f;
-
-    private MaterialCategory? _activeFilter;
-    private readonly List<ShopItemUI> _spawnedCards = new();
-    private Coroutine _toastCoroutine;
 
     private void Awake()
     {
@@ -55,11 +31,6 @@ public class ShopUI : MonoBehaviour
 
         if (closeShopButton != null)
             closeShopButton.SetActive(false);
-
-        tabAll.onClick.AddListener(() => SetFilter(null));
-        tabWood.onClick.AddListener(() => SetFilter(MaterialCategory.Wood));
-        tabMetal.onClick.AddListener(() => SetFilter(MaterialCategory.Metal));
-        tabAdvanced.onClick.AddListener(() => SetFilter(MaterialCategory.Advanced));
     }
 
     private void OnEnable()
@@ -70,9 +41,6 @@ public class ShopUI : MonoBehaviour
     private void OnDisable()
     {
         CoinManager.OnCoinsChanged -= OnCoinsChanged;
-
-        if (toastObject != null)
-            toastObject.SetActive(false);
     }
 
     public void OpenShop()
@@ -89,12 +57,13 @@ public class ShopUI : MonoBehaviour
             panelAnimator.SetBool(OpenHash, true);
 
         RefreshBalance();
-        SetFilter(null);
     }
 
     public void CloseShop()
     {
-        Time.timeScale = 1f; 
+        GameObject startPanel = GameObject.Find("StartScreenPanel");
+        if (startPanel == null || !startPanel.activeSelf)
+            Time.timeScale = 1f;
 
         if (closeShopButton != null)
         {
@@ -113,82 +82,6 @@ public class ShopUI : MonoBehaviour
         shopPanel.SetActive(false);
     }
 
-    private void SetFilter(MaterialCategory? category)
-    {
-        _activeFilter = category;
-       // UpdateTabVisuals();
-        PopulateGrid();
-    }
-
-   /* private void UpdateTabVisuals()
-    {
-        SetTab(tabAll, _activeFilter == null);
-        SetTab(tabWood, _activeFilter == MaterialCategory.Wood);
-        SetTab(tabMetal, _activeFilter == MaterialCategory.Metal);
-        SetTab(tabAdvanced, _activeFilter == MaterialCategory.Advanced);
-    }*/
-
-    private void SetTab(Button tab, bool active)
-    {
-        if (tab == null) return;
-
-        var img = tab.GetComponent<Image>();
-        if (img != null)
-            img.color = active ? tabActiveColor : tabInactiveColor;
-
-        var text = tab.GetComponentInChildren<TextMeshProUGUI>();
-        if (text != null)
-            text.color = active ? tabActiveTextColor : tabInactiveTextColor;
-    }
-
-    private void PopulateGrid()
-    {
-        foreach (var card in _spawnedCards)
-            if (card != null)
-                Destroy(card.gameObject);
-
-        _spawnedCards.Clear();
-
-        foreach (var mat in allMaterials)
-        {
-            if (_activeFilter.HasValue && mat.category != _activeFilter.Value)
-                continue;
-
-            var go = Instantiate(itemCardPrefab, gridParent);
-            var ui = go.GetComponent<ShopItemUI>();
-
-            ui.Setup(mat, this);
-            _spawnedCards.Add(ui);
-        }
-    }
-
-    private void RefreshAllCards()
-    {
-        foreach (var card in _spawnedCards)
-            if (card != null)
-                card.Refresh();
-    }
-
-    public void TryPurchase(MaterialData material)
-    {
-        if (MaterialInventory.Instance.IsOwned(material)) return;
-        if (MaterialInventory.Instance.IsLocked(material)) return;
-
-        if (!material.freeStarter &&
-            !CoinManager.Instance.SpendCoins(material.coinPrice))
-        {
-            ShowToast("Not enough coins!");
-            return;
-        }
-
-        MaterialInventory.Instance.Unlock(material);
-
-        RefreshBalance();
-        RefreshAllCards();
-
-        ShowToast($"{material.displayName} unlocked!");
-    }
-
     private void RefreshBalance()
     {
         if (balanceText != null)
@@ -199,29 +92,6 @@ public class ShopUI : MonoBehaviour
     {
         if (balanceText != null)
             balanceText.text = newAmount.ToString();
-
-        RefreshAllCards();
     }
-
-    private void ShowToast(string message)
-    {
-        if (_toastCoroutine != null)
-            StopCoroutine(_toastCoroutine);
-
-        _toastCoroutine = StartCoroutine(ToastRoutine(message));
-    }
-
-    private IEnumerator ToastRoutine(string message)
-    {
-        if (toastText != null)
-            toastText.text = message;
-
-        if (toastObject != null)
-            toastObject.SetActive(true);
-
-        yield return new WaitForSeconds(toastDuration);
-
-        if (toastObject != null)
-            toastObject.SetActive(false);
-    }
+    
 }

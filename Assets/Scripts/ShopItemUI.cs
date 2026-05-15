@@ -81,10 +81,10 @@ public class ShopItemUI : MonoBehaviour
             canvasGroup.alpha = (!owned && !locked && !canAfford) ? 0.55f : 1f;
     }
 
-    public void OnBuyClicked()
+   /* public void OnBuyClicked()
     {
         _shopUI.TryPurchase(_data);
-    }
+    }*/
 
     private void SetBarWidth(RectTransform bar, int value)
     {
