@@ -33,6 +33,9 @@ public class BridgeManager : MonoBehaviour
     bool       isDragging = false;
     Node       startNode;
     Plane      constructionPlane;
+    
+    private float lastClickTime;
+    private const float doubleClickThreshold = 0.3f;
 
     private List<Node> allNodeData = new();
     private List<Beam> allBeamData = new();
@@ -70,12 +73,154 @@ public class BridgeManager : MonoBehaviour
 
     void Update()
     {
+        if (stressSimulator != null && stressSimulator.SimulationStarted) 
+            return;
+        
         HandleMouseDown();
         HandleDragging();
         HandleMouseUp();
 
         if (Input.GetKeyDown(KeyCode.T))
             TestMyBridge();
+        
+        if (Input.GetKeyDown(KeyCode.R))
+            HardReset();
+        
+        if (Input.GetMouseButtonDown(0))
+        {
+            float timeSinceLastClick = Time.time - lastClickTime;
+            if (timeSinceLastClick <= doubleClickThreshold)
+            {
+                TryDeleteElement();
+            }
+            lastClickTime = Time.time;
+        }
+    }
+  
+    void TryDeleteElement()
+{
+    
+    
+    Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+    if (!Physics.Raycast(ray, out RaycastHit hit)) return;
+
+    Beam clickedBeam = hit.collider.GetComponent<Beam>();
+    
+    Debug.Log($"Clicked beam: {clickedBeam.name}, linkedBeams count: {clickedBeam.linkedBeams?.Count}");
+    if (clickedBeam != null)
+    {
+        HashSet<Beam> toDelete = new HashSet<Beam> { clickedBeam };
+
+        if (clickedBeam.linkedBeams != null)
+        {
+            foreach (Beam linked in clickedBeam.linkedBeams)
+            {
+                if (linked != null) toDelete.Add(linked);
+            }
+        }
+
+        foreach (Beam b in toDelete)
+        {
+            if (b == null) continue;
+
+            if (b.linkedRoad != null)
+            {
+                Destroy(b.linkedRoad);
+                b.linkedRoad = null;
+            }
+
+            allBeamData.Remove(b);
+            Destroy(b.gameObject);
+        }
+
+        allBeamData.RemoveAll(item => item == null);
+        Invoke(nameof(CleanupIsolatedNodes), 0.05f);
+        return;
+    }
+
+    Node node = hit.collider.GetComponent<Node>();
+    if (node != null && !node.IsAnchor)
+    {
+        HashSet<Beam> toDelete = new HashSet<Beam>();
+        foreach (Beam b in allBeamData)
+        {
+            if (b != null && (b.StartNode == node || b.EndNode == node))
+                toDelete.Add(b);
+        }
+
+        foreach (Beam b in toDelete)
+        {
+            if (b == null) continue;
+            if (b.linkedRoad != null) { Destroy(b.linkedRoad); b.linkedRoad = null; }
+            if (b.linkedBeams != null)
+            {
+                foreach (Beam linked in b.linkedBeams)
+                {
+                    if (linked != null && !toDelete.Contains(linked))
+                    {
+                        if (linked.linkedRoad != null) { Destroy(linked.linkedRoad); linked.linkedRoad = null; }
+                        allBeamData.Remove(linked);
+                        Destroy(linked.gameObject);
+                    }
+                }
+            }
+            allBeamData.Remove(b);
+            Destroy(b.gameObject);
+        }
+
+        allBeamData.RemoveAll(item => item == null);
+        allNodeData.Remove(node);
+        Destroy(node.gameObject);
+        Invoke(nameof(CleanupIsolatedNodes), 0.05f);
+    }
+}
+    void CleanupIsolatedNodes()
+    {
+        allBeamData.RemoveAll(b => b == null);
+        allNodeData.RemoveAll(n => n == null);
+    
+        List<Node> nodesToRemove = new List<Node>();
+
+        foreach (Node node in allNodeData)
+        {
+            if (node == null || node.IsAnchor) continue;
+
+            bool hasConnection = false;
+            foreach (Beam beam in allBeamData)
+            {
+                if (beam != null && (beam.StartNode == node || beam.EndNode == node))
+                {
+                    hasConnection = true;
+                    break;
+                }
+            }
+            if (!hasConnection) nodesToRemove.Add(node);
+        }
+
+        foreach (Node node in nodesToRemove)
+        {
+            allNodeData.Remove(node);
+            if (node != null) Destroy(node.gameObject);
+        }
+    }
+    public void HardReset()
+    {
+        StopAllCoroutines();
+    
+        foreach (var beam in allBeamData)
+        {
+            if (beam != null) Destroy(beam.gameObject);
+        }
+    
+        foreach (var node in allNodeData)
+        {
+            if (node != null && !node.IsAnchor) 
+                Destroy(node.gameObject);
+        }
+
+        allBeamData.Clear();
+        allNodeData.RemoveAll(n => n == null || !n.IsAnchor);
+        roadBuilder?.ClearAllRoad();
     }
     Vector3 GetSnappedMousePoint(Vector3 rawMousePoint)
     {
@@ -316,37 +461,60 @@ public class BridgeManager : MonoBehaviour
         allNodeData.Add(node);
         stressSimulator?.RegisterNode(node);
     }
-
     void MakeBridgeSegment(Vector3 a, Vector3 b, Node fromNode, Node toNode)
     {
-        bool  isHorizontal  = Mathf.Abs(a.y - b.y) < 0.2f;
+        bool isHorizontal = Mathf.Abs(a.y - b.y) < 0.2f;
         float maxRoadHeight = -5.0f;
 
-        if (isHorizontal && selectedMaterial == BeamMaterialType.Cable)
-        {
-            Debug.LogWarning("[BridgeManager] Kablovi ne mogu biti horizontalne grede (putevi).");
-            return;
-        }
+        if (isHorizontal && selectedMaterial == BeamMaterialType.Cable) return;
 
         GameObject frontBeam = CreateBeamInstance(a, b, "Beam_Front");
         RegisterBeam(frontBeam, fromNode, toNode);
 
         if (!autoBuildParallel) return;
 
-        Vector3 offset      = new Vector3(bridgeWidth, 0, 0);
-        Node    backFromNode = GetOrUpdateBackNode(fromNode, offset);
-        Node    backToNode   = GetOrUpdateBackNode(toNode, offset);
+        Vector3 offset = new Vector3(bridgeWidth, 0, 0);
+        Node backFromNode = GetOrUpdateBackNode(fromNode, offset);
+        Node backToNode = GetOrUpdateBackNode(toNode, offset);
 
-        GameObject backBeam    = CreateBeamInstance(a + offset, b + offset, "Beam_Back");
-        GameObject crossStart  = CreateBeamInstance(a,          a + offset, "Beam_Cross_Start");
-        GameObject crossEnd    = CreateBeamInstance(b,          b + offset, "Beam_Cross_End");
+        GameObject backBeam = CreateBeamInstance(a + offset, b + offset, "Beam_Back");
+        GameObject crossStart = CreateBeamInstance(a, a + offset, "Beam_Cross_Start");
+        GameObject crossEnd = CreateBeamInstance(b, b + offset, "Beam_Cross_End");
 
-        RegisterBeam(backBeam,   backFromNode, backToNode);
-        RegisterBeam(crossStart, fromNode,     backFromNode);
-        RegisterBeam(crossEnd,   toNode,       backToNode);
+        RegisterBeam(backBeam, backFromNode, backToNode);
+        RegisterBeam(crossStart, fromNode, backFromNode);
+        RegisterBeam(crossEnd, toNode, backToNode);
 
+        
+        Beam b1 = frontBeam.GetComponent<Beam>();
+        Beam b2 = backBeam.GetComponent<Beam>();
+        Beam b3 = crossStart.GetComponent<Beam>();
+        Beam b4 = crossEnd.GetComponent<Beam>();
+        
         if (isHorizontal && a.y < maxRoadHeight)
-            roadBuilder?.AddRoadSegment(a, b, offset);
+        {
+            if (roadBuilder != null)
+            {
+                GameObject roadPiece = roadBuilder.AddRoadSegment(a, b, offset);
+                if (b1 != null) b1.linkedRoad = roadPiece;
+                if (b2 != null) b2.linkedRoad = roadPiece;
+                if (b3 != null) b3.linkedRoad = roadPiece;
+                if (b4 != null) b4.linkedRoad = roadPiece;
+            }
+        }
+        List<Beam> group = new List<Beam> { b1, b2, b3, b4 };
+        foreach (Beam current in group)
+        {
+            if (current == null) continue;
+            foreach (Beam other in group)
+            {
+                if (other != null && current != other)
+                {
+                    if (!current.linkedBeams.Contains(other)) 
+                        current.linkedBeams.Add(other);
+                }
+            }
+        }
     }
 
     Node GetOrUpdateBackNode(Node frontNode, Vector3 offset)
@@ -373,31 +541,7 @@ public class BridgeManager : MonoBehaviour
         }
         return backNode;
     }
-
-    // void RegisterBeam(GameObject beamObj, Node from, Node to)
-    // {
-    //     // Beam bd = beamObj.GetComponent<Beam>() ?? beamObj.AddComponent<Beam>();
-    //     // bd.Initialize(from, to, selectedMaterial);
-    //     // if (!allBeamData.Contains(bd)) allBeamData.Add(bd);
-    //     // stressSimulator?.RegisterBeam(bd);
-    //     
-    //     if (beamObj == null) return;
-    //
-    //     Beam bd = beamObj.GetComponent<Beam>();
-    //     if (bd == null) 
-    //     {
-    //         bd = beamObj.AddComponent<Beam>();
-    //         Debug.Log("<color=orange>Upozorenje:</color> Prefab grede nije imao Beam skriptu, dodana je automatski.");
-    //         
-    //     }
-    //     
-    //     bd.Initialize(from, to, selectedMaterial);
-    //
-    //     if (!allBeamData.Contains(bd)) allBeamData.Add(bd);
-    //     stressSimulator?.RegisterBeam(bd);
-    //
-    //     Debug.Log($"<color=green>SUCCESS:</color> Greda registrovana između {from.name} i {to.name}");
-    // }
+    
 
     void RegisterBeam(GameObject beamObj, Node from, Node to)
     {
@@ -502,6 +646,8 @@ public class BridgeManager : MonoBehaviour
         foreach (string message in result.AdviceMessages)
             Debug.Log("ADVICE: " + message);
     }
+    
+
     
  
 }

@@ -14,7 +14,7 @@ public class RoadBuilder : MonoBehaviour
 
     private List<GameObject> roadSegments = new List<GameObject>();
 
-    public void AddRoadSegment(Vector3 nodeA, Vector3 nodeB, Vector3 widthDirection)
+    public GameObject AddRoadSegment(Vector3 nodeA, Vector3 nodeB, Vector3 widthDirection)
     {
         GameObject segment = CreateRoadMesh(nodeA, nodeB, widthDirection);
         segment.transform.SetParent(this.transform);
@@ -22,11 +22,14 @@ public class RoadBuilder : MonoBehaviour
         roadSegments.Add(segment);
 
         if (addRoadLines)
-            CreateCentreLine(nodeA, nodeB, widthDirection);
+            CreateCentreLine(nodeA, nodeB, widthDirection, segment.transform);
+        
+        return segment;
     }
 
     GameObject CreateRoadMesh(Vector3 a, Vector3 b, Vector3 widthDir)
     {
+        
         Vector3 w = widthDir.normalized * roadWidth;
 
         Vector3 v0 = a;             
@@ -66,7 +69,7 @@ public class RoadBuilder : MonoBehaviour
         return obj;
     }
 
-    void CreateCentreLine(Vector3 a, Vector3 b, Vector3 widthDir)
+    void CreateCentreLine(Vector3 a, Vector3 b, Vector3 widthDir, Transform parent)
     {
         Vector3 halfW = widthDir.normalized * (roadWidth * 0.5f);
         Vector3 up = Vector3.up * 0.13f; 
@@ -75,7 +78,7 @@ public class RoadBuilder : MonoBehaviour
         Vector3 lineEnd   = b + halfW + up;
 
         GameObject lineObj = new GameObject("CentreLine");
-        lineObj.transform.SetParent(this.transform);
+        lineObj.transform.SetParent(parent);
 
         LineRenderer lr = lineObj.AddComponent<LineRenderer>();
         lr.positionCount = 2;
@@ -116,5 +119,23 @@ public class RoadBuilder : MonoBehaviour
         foreach (var seg in roadSegments)
             if (seg) Destroy(seg);
         roadSegments.Clear();
+    }
+
+    public void RefreshRoad(List<Beam> currentBeams)
+    {
+        ClearAllRoad();
+        
+        foreach (var beam in currentBeams)
+        {
+            if (beam == null) continue;
+            
+            bool isHorizontal = Mathf.Abs(beam.StartNode.Position.y - beam.EndNode.Position.y) < 0.2f;
+            
+            if (isHorizontal && !beam.gameObject.name.Contains("Cross"))
+            {
+                Vector3 offset = new Vector3(3.0f, 0, 0); 
+                AddRoadSegment(beam.StartNode.Position, beam.EndNode.Position, offset);
+            }
+        }
     }
 }

@@ -2394,6 +2394,7 @@ MonoBehaviour:
   tickRate: 0.05
   breakThreshold: 1.15
   enableBreaking: 1
+  roadBuilder: {fileID: 24346137}
   analyzer: {fileID: 159517985}
 --- !u!4 &159517984
 Transform:
@@ -4267,7 +4268,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2548950675410712501, guid: 1b0056de02fcaae46be274fa756b983a, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -118.17
+      value: -117.65
       objectReference: {fileID: 0}
     - target: {fileID: 2548950675410712501, guid: 1b0056de02fcaae46be274fa756b983a, type: 3}
       propertyPath: m_LocalPosition.y
@@ -4275,7 +4276,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2548950675410712501, guid: 1b0056de02fcaae46be274fa756b983a, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 70.93
+      value: 68.45
       objectReference: {fileID: 0}
     - target: {fileID: 2548950675410712501, guid: 1b0056de02fcaae46be274fa756b983a, type: 3}
       propertyPath: m_LocalRotation.w

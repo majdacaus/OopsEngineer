@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class Beam : MonoBehaviour
@@ -6,6 +7,9 @@ public class Beam : MonoBehaviour
     [SerializeField] private Node  _startNode;
     [SerializeField] private Node  _endNode;
     [SerializeField] private float _maxLoad = 2000f;
+    
+    public List<Beam> linkedBeams = new List<Beam>();
+    public GameObject linkedRoad;
 
     private float _currentStress = 0f;
 
@@ -35,7 +39,6 @@ public class Beam : MonoBehaviour
     {
         this._startNode   = start;
         this._endNode     = end;
-        //_maxLoad     = maxLoad;
         MaterialType = material;
 
         Vector3 dir = _endNode.transform.position - _startNode.transform.position;
@@ -64,7 +67,9 @@ public class Beam : MonoBehaviour
         
         Debug.Log($"Greda spojena između {start.name} i {end.name}");
     }
+
     public Node GetOtherNode(Node from) => from == _startNode ? _endNode : _startNode;
+
     public void UpdateStress(float newStress)
     {
         _currentStress = newStress;

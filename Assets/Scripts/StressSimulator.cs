@@ -1,39 +1,68 @@
+using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
 public class StressSimulator : MonoBehaviour
 {
-    [Header("Simulacija")]
-    [SerializeField] float tickRate       = 0.05f;
+    [Header("Simulacija")] [SerializeField]
+    float tickRate = 0.05f;
+
     [SerializeField] float breakThreshold = 1.15f;
-    [SerializeField] bool  enableBreaking = true;
+    [SerializeField] bool enableBreaking = true;
 
     //[Header("Efekti")]
     //[SerializeField] GameObject breakParticlePrefab;
     
+    [Header("Reference")]
+    [SerializeField] RoadBuilder roadBuilder;
     [SerializeField] ConstructionAnalyzer analyzer;
 
-    private readonly List<Beam>              registeredBeams = new();
-    private readonly List<Node>              registeredNodes = new();
-    private readonly List<VehicleWeightSource> vehicles      = new();
+    private readonly List<Beam> registeredBeams = new();
+    private readonly List<Node> registeredNodes = new();
+    private readonly List<VehicleWeightSource> vehicles = new();
 
-    private readonly Dictionary<Node, int>   depthMap   = new();
+    private readonly Dictionary<Node, int> depthMap = new();
     private readonly Dictionary<Node, float> nodeForces = new();
 
     private BeamStressVisualizer visualizer;
     private AnalysisResult lastAnalysis;
     private bool hasCollapsed = false;
+    private bool simulationStarted = false;
+    
+    public bool SimulationStarted => simulationStarted;
 
+    public void StartTestMode()
+    {
+        
+        if (simulationStarted) return;
+        simulationStarted = true;
+        hasCollapsed = false;
+        Debug.Log("SIMULACIJA POKRENUTA!");
+    }
+    
     void Start()
     {
         visualizer = GetComponent<BeamStressVisualizer>() ?? gameObject.AddComponent<BeamStressVisualizer>();
-        
+
         if (analyzer == null) analyzer = GetComponent<ConstructionAnalyzer>();
         InvokeRepeating(nameof(RunSimulation), 0.3f, tickRate);
         Debug.Log("[StressSimulator] Pokrenut.");
     }
 
+    void Update()
+    {
+
+        if (Input.GetKeyDown(KeyCode.L))
+        {
+            StartTestMode();
+        }
+
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            ResetToBuildMode();
+        }
+    }
     public void RegisterBeam(Beam beam)
     {
         if (beam != null && !registeredBeams.Contains(beam))
@@ -59,20 +88,22 @@ public class StressSimulator : MonoBehaviour
 
     void RunSimulation()
     {
-        Debug.Log($"[Sim] Tick | Beams={registeredBeams.Count} | Nodes={registeredNodes.Count} | Vehicles={vehicles.Count} | Analyzer={analyzer != null}");
-        
+        if (!simulationStarted) return;
+      //  Debug.Log(
+        //    $"[Sim] Tick | Beams={registeredBeams.Count} | Nodes={registeredNodes.Count} | Vehicles={vehicles.Count} | Analyzer={analyzer != null}");
+
         // if (registeredBeams.Count == 0) { Debug.Log("Nema registrovanih greda!"); return; }
         // if (analyzer == null) { Debug.Log("Analyzer je još uvijek NULL!"); return; }
         if (analyzer == null) return;
         if (registeredBeams.Count == 0) return;
 
         lastAnalysis = analyzer.PerformFullAnalysis(registeredNodes, registeredBeams);
-        
+
         ResetForces();
         BuildDepthMap();
         ApplyVehicleLoads();
         PropagateForces();
-        
+
         ComputeAndApplyStress();
         if (enableBreaking) CheckBreakage();
 
@@ -83,7 +114,10 @@ public class StressSimulator : MonoBehaviour
     {
         nodeForces.Clear();
         foreach (Node n in registeredNodes) nodeForces[n] = 0f;
-        foreach (Beam b in registeredBeams) { if (!b.IsBroken()) b.UpdateStress(0f); }
+        foreach (Beam b in registeredBeams)
+        {
+            if (!b.IsBroken()) b.UpdateStress(0f);
+        }
     }
 
     // void BuildDepthMap()
@@ -110,7 +144,7 @@ public class StressSimulator : MonoBehaviour
     //         }
     //     }
     // }
-    
+
     void BuildDepthMap()
     {
         depthMap.Clear();
@@ -135,9 +169,9 @@ public class StressSimulator : MonoBehaviour
                 queue.Enqueue(neighbour);
             }
         }
-    
+
         Debug.Log($"[DepthMap] ZAVRŠEN: {depthMap.Count}/{registeredNodes.Count} nodova dosegnuto");
-        foreach(Node n in registeredNodes.Where(n => !depthMap.ContainsKey(n)))
+        foreach (Node n in registeredNodes.Where(n => !depthMap.ContainsKey(n)))
             Debug.Log($"[DepthMap] NIJE DOSEGNUT: {n.name} | Beams={n.GetConnectedBeams().Count}");
     }
 
@@ -147,19 +181,20 @@ public class StressSimulator : MonoBehaviour
         {
             if (vehicle == null) continue;
 
-            Vector3 pos    = vehicle.GroundPoint;
-            float   force  = vehicle.WeightForce;
-            float   radius = vehicle.ContactRadius;
+            Vector3 pos = vehicle.GroundPoint;
+            float force = vehicle.WeightForce;
+            float radius = vehicle.ContactRadius;
 
             var nearby = registeredNodes
                 .Where(n => depthMap.ContainsKey(n) && Vector3.Distance(pos, n.transform.position) < radius)
                 .Select(n => (node: n, invDist: 1f / Mathf.Max(Vector3.Distance(pos, n.transform.position), 0.05f)))
                 .ToList();
-            
-            Debug.Log($"[Vehicle] GroundPoint={pos} | WeightForce={force:F0}N | Radius={radius} | NearbyNodes={nearby.Count}");
+
+            Debug.Log(
+                $"[Vehicle] GroundPoint={pos} | WeightForce={force:F0}N | Radius={radius} | NearbyNodes={nearby.Count}");
             Debug.Log($"[Vehicle] Ukupno registrovanih nodova: {registeredNodes.Count} | U depthMap: {depthMap.Count}");
             foreach (var (node, invDist) in nearby)
-                Debug.Log($"  → Node '{node.name}' na dist={1f/invDist:F2} prima dio sile");
+                Debug.Log($"  → Node '{node.name}' na dist={1f / invDist:F2} prima dio sile");
 
             float totalWeight = nearby.Sum(x => x.invDist);
             if (totalWeight <= 0f) continue;
@@ -185,7 +220,7 @@ public class StressSimulator : MonoBehaviour
 
                 var outgoing = node.GetConnectedBeams()
                     .Where(b => !b.IsBroken() && depthMap.ContainsKey(b.GetOtherNode(node))
-                                && depthMap[b.GetOtherNode(node)] < depth)
+                                              && depthMap[b.GetOtherNode(node)] < depth)
                     .ToList();
 
                 if (outgoing.Count == 0) continue;
@@ -201,7 +236,7 @@ public class StressSimulator : MonoBehaviour
                     float share = eff / totalStiffness;
                     float beamForce = force * share;
 
-                   // beam.UpdateStress(beamForce);
+                    // beam.UpdateStress(beamForce);
 
                     Node next = beam.GetOtherNode(node);
                     nodeForces[next] = nodeForces.GetValueOrDefault(next, 0f) + beamForce;
@@ -232,38 +267,136 @@ public class StressSimulator : MonoBehaviour
             float forceB = nodeForces.GetValueOrDefault(beam.EndNode, 0f);
             float totalForce = (forceA + forceB) / 2f;
             beam.UpdateStress(totalForce);
-            
-            if(totalForce >10f)
+
+            if (totalForce > 10f)
                 Debug.Log($"BEAM '{beam.name}' ForceA '{forceA:F0}' ForceB '{forceB:F0}'");
         }
+    }
+    private IEnumerator SinkAndFade(GameObject obj)
+    {
+        float duration = 3.0f;
+        float elapsed = 0f;
+    
+        Vector3 startPos = obj.transform.position;
+        Vector3 startScale = obj.transform.localScale;
+        Quaternion startRot = obj.transform.rotation;
+
+        Quaternion targetRot = startRot * Quaternion.Euler(Random.Range(-45f, 45f), Random.Range(-45f, 45f), Random.Range(-45f, 45f));
+        Vector3 sideOffset = new Vector3(Random.Range(-1.5f, 1.5f), 0, Random.Range(-1.5f, 1.5f));
+        Vector3 targetPos = startPos + Vector3.down * 7f + sideOffset;
+
+        if (obj.TryGetComponent(out Collider col)) col.enabled = false;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float percent = elapsed / duration;
+            float smoothPercent = Mathf.SmoothStep(0, 1, percent);
+
+            obj.transform.position = Vector3.Lerp(startPos, targetPos, smoothPercent);
+            obj.transform.rotation = Quaternion.Lerp(startRot, targetRot, smoothPercent);
+            obj.transform.localScale = Vector3.Lerp(startScale, Vector3.zero, smoothPercent);
+
+            yield return null;
+        }
+
+        Destroy(obj);
     }
 
     void CheckBreakage()
     {
-        foreach (Beam beam in registeredBeams)
+        if (!simulationStarted || hasCollapsed || lastAnalysis == null || registeredBeams.Count == 0) 
+            return;
+    
+        if (lastAnalysis.StructuralHealth < 60f)
         {
-            if (beam.IsBroken()) continue;
+            hasCollapsed = true;
 
-            float healthFactor = (lastAnalysis !=  null && lastAnalysis.StructuralHealth<60f) ? 2.0f : 1.0f;
-            if (beam.StressRatio > 0.05f)
-                Debug.Log($"[Break?] '{beam.name}' | Ratio={beam.StressRatio:F3} | HealthFactor={healthFactor} " +
-                          $"| Effective={(beam.StressRatio * healthFactor):F3} | Threshold={breakThreshold}");
-            if ((beam.StressRatio * healthFactor) < breakThreshold) continue;
-            
-            beam.UpdateStress(beam.MaxLoad + 1f);
-            Debug.LogWarning($"[StressSimulator] *** GRED PUKLA *** {beam.name} | {beam.MaterialType} | Napon: {beam.CurrentStress:F0}/{beam.MaxLoad:F0}");
-
-            if (!hasCollapsed)
+            foreach (var beam in registeredBeams)
             {
-                hasCollapsed = true;
-                visualizer.TriggerCollapse(registeredBeams, registeredNodes);
+                if (beam != null) StartCoroutine(SinkAndFade(beam.gameObject));
             }
-            
-            Renderer r = beam.GetComponent<Renderer>();
-            if (r != null) r.material.color = new Color(0.12f, 0.04f, 0f);
 
-            // if (breakParticlePrefab != null)
-            //     Instantiate(breakParticlePrefab, beam.transform.position, Quaternion.identity);
+            foreach (var node in registeredNodes)
+            {
+                if (node != null && !node.IsAnchor) 
+                    StartCoroutine(SinkAndFade(node.gameObject));
+            }
+
+            if (roadBuilder != null) roadBuilder.ClearAllRoad(); 
+            Invoke(nameof(ResetToBuildMode), 4f);
+            
+            simulationStarted = false;
         }
     }
+    
+    // void CheckBreakage()
+    // {
+    //     
+    //     if (!simulationStarted || hasCollapsed || lastAnalysis == null || registeredBeams.Count == 0) 
+    //         return;
+    //     
+    //     if (lastAnalysis.StructuralHealth < 60f)
+    //     {
+    //         Debug.LogWarning($"[StressSimulator] TEST NEUSPJEŠAN! Health: {lastAnalysis.StructuralHealth}%");
+    //         hasCollapsed = true;
+    //         visualizer.TriggerCollapse(registeredBeams, registeredNodes);
+    //     
+    //         if (roadBuilder != null)
+    //         {
+    //             roadBuilder.ClearAllRoad();
+    //         }
+    //         
+    //         simulationStarted = false; 
+    //     }
+    //
+    //     // foreach (Beam beam in registeredBeams)
+    //     // {
+    //     //     if (beam.IsBroken()) continue;
+    //     //
+    //     //     float healthFactor = (lastAnalysis != null && lastAnalysis.StructuralHealth < 60f) ? 2.0f : 1.0f;
+    //     //     if (beam.StressRatio > 0.05f)
+    //     //         Debug.Log($"[Break?] '{beam.name}' | Ratio={beam.StressRatio:F3} | HealthFactor={healthFactor} " +
+    //     //                   $"| Effective={(beam.StressRatio * healthFactor):F3} | Threshold={breakThreshold}");
+    //     //     if ((beam.StressRatio * healthFactor) < breakThreshold) continue;
+    //     //
+    //     //     beam.UpdateStress(beam.MaxLoad + 1f);
+    //     //     Debug.LogWarning(
+    //     //         $"[StressSimulator] *** GRED PUKLA *** {beam.name} | {beam.MaterialType} | Napon: {beam.CurrentStress:F0}/{beam.MaxLoad:F0}");
+    //     //
+    //     //     if (!hasCollapsed)
+    //     //     {
+    //     //         hasCollapsed = true;
+    //     //         visualizer.TriggerCollapse(registeredBeams, registeredNodes);
+    //     //     }
+    //     //
+    //     //     Renderer r = beam.GetComponent<Renderer>();
+    //     //     if (r != null) r.material.color = new Color(0.12f, 0.04f, 0f);
+    //     //
+    //     //     // if (breakParticlePrefab != null)
+    //     //     //     Instantiate(breakParticlePrefab, beam.transform.position, Quaternion.identity);
+    //    // }
+    // }
+    
+    public void ResetToBuildMode()
+    {
+        StopAllCoroutines(); 
+        registeredBeams.Clear();
+        registeredNodes.Clear();
+        
+        simulationStarted = false;
+        hasCollapsed = false;
+    
+        foreach (var beam in registeredBeams)
+        {
+            if (beam != null)
+            {
+                beam.UpdateStress(0f);
+            }
+        }
+    
+        Debug.Log("BUILD MODE AKTIVAN");
+    }
+    
+    
 }
