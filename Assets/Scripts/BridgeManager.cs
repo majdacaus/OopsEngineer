@@ -106,7 +106,7 @@ public class BridgeManager : MonoBehaviour
 
     Beam clickedBeam = hit.collider.GetComponent<Beam>();
     
-    Debug.Log($"Clicked beam: {clickedBeam.name}, linkedBeams count: {clickedBeam.linkedBeams?.Count}");
+   // Debug.Log($"Clicked beam: {clickedBeam.name}, linkedBeams count: {clickedBeam.linkedBeams?.Count}");
     if (clickedBeam != null)
     {
         HashSet<Beam> toDelete = new HashSet<Beam> { clickedBeam };
