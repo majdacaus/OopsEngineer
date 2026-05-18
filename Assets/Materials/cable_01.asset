@@ -10,21 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8343009e87193b04783790b7187a62e9, type: 3}
-  m_Name: wood_01
+  m_Name: cable_01
   m_EditorClassIdentifier: GameScripts::MaterialData
-  materialId: wood_01
-  displayName: Wood
-  description: Good 'ol lumber. Works, that's all that matters.
+  materialId: cable_01
+  displayName: Cable
+  description: Specially designed for tension, these cables allow for flexible designs
+    and  longer distances.
   icon: {fileID: 0}
-  beamPrefab: {fileID: 5228679980159667573, guid: b3d425de51f2aa74d8f655a3268eec75, type: 3}
-  category: 0
-  strength: 3
-  weight: 4
-  costPerUnit: 3
-  coinPrice: 10
-  freeStarter: 1
+  beamPrefab: {fileID: 5228679980159667573, guid: 52e1db7e0b53b41429ca97db86a48937, type: 3}
+  category: 2
+  strength: 1
+  weight: 1
+  costPerUnit: 1
+  coinPrice: 30
+  freeStarter: 0
   isNew: 0
   requiredLevel: 0
   purchaseQuantity: 10
-  swatchColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
+  swatchColor: {r: 1, g: 1, b: 1, a: 1}
   swatchBorderColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}

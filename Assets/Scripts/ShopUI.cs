@@ -34,22 +34,22 @@ public class ShopUI : MonoBehaviour
     public Transform gridParent;
     public GameObject itemCardPrefab;
     //
-    // [Header("Materials")]
-    // public List<MaterialData> allMaterials;
+    [Header("Materials")]
+    public List<MaterialData> allMaterials;
 
     // [Header("Toast")]
     // public GameObject toastObject;
     // public TextMeshProUGUI toastText;
     // public float toastDuration = 2f;
 
-    // private MaterialCategory? _activeFilter;
-    // private readonly List<ShopItemUI> _spawnedCards = new();
+    private MaterialCategory? _activeFilter;
+    private readonly List<ShopItemUI> _spawnedCards = new();
     // private Coroutine _toastCoroutine;
 
     private void Awake()
     {
-        // if (shopPanel == null || gridParent == null || itemCardPrefab == null)
-            Debug.LogError("ShopUI: Missing references in Inspector!", this);
+        if (shopPanel == null || gridParent == null || itemCardPrefab == null)
+           Debug.LogError("ShopUI: Missing references in Inspector!", this);
 
         shopPanel.SetActive(false);
 
@@ -95,7 +95,7 @@ public class ShopUI : MonoBehaviour
     public void CloseShop()
     {
         Time.timeScale = 1f; 
-
+        shopPanel.SetActive(false);
         if (closeShopButton != null)
         {
             closeShopButton.SetActive(false);
@@ -115,9 +115,9 @@ public class ShopUI : MonoBehaviour
 
     private void SetFilter(MaterialCategory? category)
     {
-        // _activeFilter = category;
+         _activeFilter = category;
        // UpdateTabVisuals();
-        //PopulateGrid();
+        PopulateGrid();
     }
 
    /* private void UpdateTabVisuals()
@@ -141,52 +141,70 @@ public class ShopUI : MonoBehaviour
     //         text.color = active ? tabActiveTextColor : tabInactiveTextColor;
     // }
 
-    // private void PopulateGrid()
+    private void PopulateGrid()
+    {
+        foreach (var card in _spawnedCards)
+            if (card != null)
+                Destroy(card.gameObject);
+    
+        _spawnedCards.Clear();
+    
+        foreach (var mat in allMaterials)
+        {
+            if (_activeFilter.HasValue && mat.category != _activeFilter.Value)
+                continue;
+    
+            var go = Instantiate(itemCardPrefab, gridParent);
+            var ui = go.GetComponent<ShopItemUI>();
+    
+            ui.Setup(mat, this);
+            _spawnedCards.Add(ui);
+        }
+    }
+
+    private void RefreshAllCards()
+    {
+        foreach (var card in _spawnedCards)
+            if (card != null)
+                card.Refresh();
+    }
+
+    // public void TryPurchase(MaterialData material)
     // {
-    //     foreach (var card in _spawnedCards)
-    //         if (card != null)
-    //             Destroy(card.gameObject);
+    //     if (MaterialInventory.Instance.IsOwned(material)) return;
+    //     if (MaterialInventory.Instance.IsLocked(material)) return;
     //
-    //     _spawnedCards.Clear();
-    //
-    //     foreach (var mat in allMaterials)
+    //     if (!material.freeStarter &&
+    //         !CoinManager.Instance.SpendCoins(material.coinPrice))
     //     {
-    //         if (_activeFilter.HasValue && mat.category != _activeFilter.Value)
-    //             continue;
-    //
-    //         var go = Instantiate(itemCardPrefab, gridParent);
-    //         var ui = go.GetComponent<ShopItemUI>();
-    //
-    //         ui.Setup(mat, this);
-    //         _spawnedCards.Add(ui);
+    //         //ShowToast("Not enough coins!");
+    //         return;
     //     }
+    //
+    //     MaterialInventory.Instance.Unlock(material);
+    //
+    //     RefreshBalance();
+    //     RefreshAllCards();
+    //
+    //    // ShowToast($"{material.displayName} unlocked!");
     // }
-
-    // private void RefreshAllCards()
-    // {
-    //     foreach (var card in _spawnedCards)
-    //         if (card != null)
-    //             card.Refresh();
-    // }
-
+    
     public void TryPurchase(MaterialData material)
     {
-        if (MaterialInventory.Instance.IsOwned(material)) return;
         if (MaterialInventory.Instance.IsLocked(material)) return;
 
-        if (!material.freeStarter &&
-            !CoinManager.Instance.SpendCoins(material.coinPrice))
-        {
-            //ShowToast("Not enough coins!");
-            return;
-        }
+        // -----------------------
+        bool alreadyOwned = MaterialInventory.Instance.IsOwned(material);
+        bool isFree       = material.freeStarter;
 
-        MaterialInventory.Instance.Unlock(material);
+        if (!isFree && !CoinManager.Instance.SpendCoins(material.coinPrice))
+            return;
+
+        MaterialInventory.Instance.AddQuantity(material, material.purchaseQuantity);
+        // -----------------------
 
         RefreshBalance();
-       // RefreshAllCards();
-
-       // ShowToast($"{material.displayName} unlocked!");
+        RefreshAllCards();
     }
 
     private void RefreshBalance()

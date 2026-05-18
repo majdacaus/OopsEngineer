@@ -550,6 +550,15 @@ public class BridgeManager : MonoBehaviour
         Beam bd = beamObj.GetComponent<Beam>() ?? beamObj.AddComponent<Beam>();
     
         bd.Initialize(from, to, selectedMaterial, -1f); 
+        
+        // -----------------------
+        if (MaterialInventory.Instance != null)
+        {
+            MaterialData equipped = MaterialInventory.Instance.EquippedMaterial;
+            if (equipped != null)
+                MaterialInventory.Instance.ConsumeUnit(equipped);
+        }
+        // -----------------------
 
         if (!allBeamData.Contains(bd)) allBeamData.Add(bd);
     

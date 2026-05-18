@@ -20,6 +20,7 @@ public class CoinManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
+            DontDestroyOnLoad(gameObject);
             currentCoins = startingCoins; 
         }
         else

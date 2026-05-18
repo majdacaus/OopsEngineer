@@ -8,8 +8,38 @@ public class ConstructionAnalyzer : MonoBehaviour
 
     private const float TOLERANCE = 0.1f;
     
+    // private bool CheckTopHeavyDistribution(List<Beam> beams, List<Node> nodes)
+    // {
+    //     if (nodes.Count == 0) return false;
+    //
+    //     float avgY = 0f;
+    //     foreach (Node n in nodes) avgY += n.transform.position.y;
+    //     avgY /= nodes.Count;
+    //
+    //     float heavyAbove = 0f;
+    //     float heavyBelow = 0f;
+    //
+    //     foreach (Beam b in beams)
+    //     {
+    //         float beamY    = (b.StartNode.transform.position.y + b.EndNode.transform.position.y) / 2f;
+    //         float weight   = b.MaterialType == BeamMaterialType.Steel ? 3f :
+    //             b.MaterialType == BeamMaterialType.Cable ? 1f : 1.5f;
+    //
+    //         if (beamY > avgY) heavyAbove += weight;
+    //         else              heavyBelow += weight;
+    //     }
+    //
+    //     if (heavyAbove + heavyBelow == 0f) return false;
+    //     float ratio = heavyAbove / (heavyAbove + heavyBelow);
+    //     return ratio > 0.65f;
+    //     // -----------------------
+    // }
+    
     public AnalysisResult PerformFullAnalysis(List<Node> nodes, List<Beam> beams)
     {
+        
+     
+            
         // nodes = nodes.FindAll(n => n.gameObject.activeInHierarchy && n.IsRevealed);
         // beams = beams.FindAll(b => b.gameObject.activeInHierarchy);
 
@@ -25,6 +55,9 @@ public class ConstructionAnalyzer : MonoBehaviour
         
         AnalysisResult res = new AnalysisResult();
         if (nodes.Count < 2) return res;
+        // res.IsTopHeavy = CheckTopHeavyDistribution(beams, nodes);
+        // if (res.IsTopHeavy)
+        //     res.AdviceMessages.Add("The steel on top is destabilizing us! It's wobbling like a jelly!");
         
         List<Node> anchors = nodes.FindAll(n => n.IsAnchor);
         anchors.Sort((a, b) => a.transform.position.z.CompareTo(b.transform.position.z));
@@ -283,6 +316,7 @@ public class ConstructionAnalyzer : MonoBehaviour
         if (res.IsLackingTriangles)      health -= 60f;
         if (res.HasWeakMaterials)        health -= 15f;
         if (res.CurrentCost > maxBudget) health -= 10f;
+      //  if (res.IsTopHeavy) health -= 20f;
 
         return Mathf.Clamp(health, 0f, 100f);
     }
@@ -302,6 +336,9 @@ public class AnalysisResult
     public bool  IsLackingTriangles;
     public float CurrentCost;
     public List<string> AdviceMessages = new();
+    
+   // public bool IsTopHeavy;
+
 
     public float StructuralHealth;
     public int   PotentialPoints;

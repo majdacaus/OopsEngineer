@@ -16,10 +16,12 @@ public class BeamStressVisualizer : MonoBehaviour
     
     public void UpdateVisuals(List<Beam> beams)
     {
+        if (beams == null || beams.Count == 0) return;
+        
         foreach (Beam beam in beams)
         {
-            if (beam == null) continue;
-
+            if (beam == null || !beam.gameObject) continue;
+            
             if (!originalPositions.ContainsKey(beam))
                 originalPositions[beam] = beam.transform.localPosition;
 
@@ -121,5 +123,11 @@ public class BeamStressVisualizer : MonoBehaviour
         };
 
         Debug.Log($"[Vizualizer] [{level}] '{worst.name}' ({worst.MaterialType}) | {worst.CurrentStress:F0}/{worst.MaxLoad:F0} | {worst.StressRatio * 100f:F1}%");
+    }
+    
+    public void ClearData()
+    {
+        originalPositions.Clear();
+        lastReport = 0;
     }
 }
