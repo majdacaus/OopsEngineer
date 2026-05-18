@@ -18,15 +18,14 @@ public class CoinManager : MonoBehaviour
     private void Awake()
     {
         if (Instance == null)
+        {
             Instance = this;
+            currentCoins = startingCoins; 
+        }
         else
+        {
             Destroy(gameObject);
-    }
-
-    private void Start()
-    {
-        currentCoins = startingCoins;
-        UpdateUI();
+        }
     }
 
     public void AddCoins(int amount)
