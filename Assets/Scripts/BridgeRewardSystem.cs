@@ -21,17 +21,34 @@ public class BridgeRewardSystem : MonoBehaviour
 
     public void EvaluateAndReward(AnalysisResult result)
     {
-        if (result == null) return;
+        Debug.Log($"[DEBUG] Reward System pokrenut!");
+    
+        if (result == null) {
+            Debug.LogError("[DEBUG] Rezultat je NULL!");
+            return;
+        }
 
         bool passed = result.PathExists && !result.IsFloating;
-        int earned  = passed ? CalculateReward(result) : 0;
+        int earned = passed ? CalculateReward(result) : 0;
+
+        Debug.Log($"[DEBUG] Passed: {passed} | Zaradjeno: {earned}");
 
         if (earned > 0)
-            CoinManager.Instance.AddCoins(earned);
-
-        OnRewardGranted?.Invoke(earned, passed);
-
-        Debug.Log($"[BridgeReward] Health={result.StructuralHealth:F0}% | Earned={earned} coins | Passed={passed}");
+        {
+            if (CoinManager.Instance != null)
+            {
+                CoinManager.Instance.AddCoins(earned);
+                Debug.Log("[DEBUG] AddCoins pozvan uspješno!");
+            }
+            else
+            {
+                Debug.LogError("[DEBUG] CoinManager.Instance je NULL! Nije nadjen u sceni!");
+            }
+        }
+        else
+        {
+            Debug.Log("[DEBUG] Earned je 0 ili manje, pare nisu dodate.");
+        }
     }
 
     private int CalculateReward(AnalysisResult result)

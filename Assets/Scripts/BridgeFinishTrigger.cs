@@ -20,6 +20,7 @@ public class BridgeFinishTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        Debug.Log($"[DEBUG] Objekat je usao u trigger: {other.name}");
         if (_rewarded) return;
         if (other.GetComponent<VehicleWeightSource>() == null) return;
 
