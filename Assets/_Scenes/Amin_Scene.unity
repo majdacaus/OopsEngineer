@@ -8983,6 +8983,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 1269106859}
+        m_TargetAssemblyTypeName: TruckEngine, GameScripts
+        m_MethodName: StartEngine
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
 --- !u!114 &846894274
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14302,6 +14314,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7769690492283750692, guid: f40e52a0c26735a46b681671fb2baa40, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1269106856}
+    - targetCorrespondingSourceObject: {fileID: 7769690492283750692, guid: f40e52a0c26735a46b681671fb2baa40, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1269106859}
   m_SourcePrefab: {fileID: 100100000, guid: f40e52a0c26735a46b681671fb2baa40, type: 3}
 --- !u!1 &1269106852 stripped
 GameObject:
@@ -14391,6 +14406,20 @@ MonoBehaviour:
   motorForce: 1500
   brakeForce: 2500
   maxSteerAngle: 30
+--- !u!114 &1269106859
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1269106852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e3c17cfe9ba88b4d8729317073c0805, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::TruckEngine
+  idleSound: {fileID: 8300000, guid: f19203f0923d08f4287c644a1b55d205, type: 3}
+  accelerateSound: {fileID: 8300000, guid: 97f33b29e5f805743bc11efa28169255, type: 3}
 --- !u!1001 &1271455005
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -24968,7 +24997,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2634900756195477355, guid: a107403662659584f9413d0a586f375c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8355181010493101973}
   m_SourcePrefab: {fileID: 100100000, guid: a107403662659584f9413d0a586f375c, type: 3}
 --- !u!1 &3933432639451600416 stripped
 GameObject:
@@ -25369,6 +25401,20 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8355181012312078581, guid: a107403662659584f9413d0a586f375c, type: 3}
   m_PrefabInstance: {fileID: 3933432639451600415}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &8355181010493101973
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3933432639451600416}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e3c17cfe9ba88b4d8729317073c0805, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::TruckEngine
+  idleSound: {fileID: 8300000, guid: b7349b552f8fede448e4d5fceaca553d, type: 3}
+  accelerateSound: {fileID: 8300000, guid: 91cea1ef6b2a66e46b7e0c4083dbca4e, type: 3}
 --- !u!114 &8366998698972977995
 MonoBehaviour:
   m_ObjectHideFlags: 0
