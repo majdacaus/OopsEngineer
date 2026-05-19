@@ -222,21 +222,41 @@ public class BridgeManager : MonoBehaviour
         allNodeData.RemoveAll(n => n == null || !n.IsAnchor);
         roadBuilder?.ClearAllRoad();
     }
+    // Vector3 GetSnappedMousePoint(Vector3 rawMousePoint)
+    // {
+    //     Vector3 direction = (rawMousePoint - startNode.transform.position).normalized;
+    //     float currentDist = Vector3.Distance(startNode.transform.position, rawMousePoint);
+    //
+    //     float threshold = (shortLength + longLength) / 2f; 
+    //
+    //     float finalDist;
+    //     if (currentDist < threshold)
+    //     {
+    //         finalDist = shortLength;
+    //     }
+    //     else
+    //     {
+    //         finalDist = longLength;
+    //     }
+    //
+    //     return startNode.transform.position + direction * finalDist;
+    // }
+    
     Vector3 GetSnappedMousePoint(Vector3 rawMousePoint)
     {
         Vector3 direction = (rawMousePoint - startNode.transform.position).normalized;
         float currentDist = Vector3.Distance(startNode.transform.position, rawMousePoint);
 
-        float threshold = (shortLength + longLength) / 2f; 
-    
+        float tolerance = 0.25f; 
         float finalDist;
-        if (currentDist < threshold)
+
+        if (currentDist <= shortLength + tolerance)
         {
-            finalDist = shortLength;
+            finalDist = Mathf.Clamp(currentDist, minBeamLength, shortLength + tolerance);
         }
-        else
+        else 
         {
-            finalDist = longLength;
+            finalDist = Mathf.Clamp(currentDist, shortLength + tolerance, longLength + tolerance);
         }
 
         return startNode.transform.position + direction * finalDist;

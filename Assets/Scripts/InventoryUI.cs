@@ -5,6 +5,11 @@ using TMPro;
 
 public class InventoryUI : MonoBehaviour
 {
+    [Header("Status UI")]
+    [SerializeField] private TextMeshProUGUI modeStatusText;
+    [SerializeField] private Color buildModeColor = Color.green;
+    [SerializeField] private Color stressModeColor = Color.red;
+    
     [Header("Toolbar Cards")]
     [SerializeField] private List<MaterialSlotUI> slots;
 
@@ -58,6 +63,12 @@ public class InventoryUI : MonoBehaviour
         if (slotsContainer != null) slotsContainer.SetActive(true);
         if (testButton != null) testButton.gameObject.SetActive(true);
         if (testActionsContainer != null) testActionsContainer.SetActive(false);
+        
+        if (modeStatusText != null)
+        {
+            modeStatusText.text = "BUILD MODE";
+            modeStatusText.color = buildModeColor;
+        }
     }
 
     public void EnterTestMode()
@@ -65,6 +76,12 @@ public class InventoryUI : MonoBehaviour
         if (slotsContainer != null) slotsContainer.SetActive(false);
         if (testButton != null) testButton.gameObject.SetActive(false);
         if (testActionsContainer != null) testActionsContainer.SetActive(true);
+        
+        if (modeStatusText != null)
+        {
+            modeStatusText.text = "STRESS TEST";
+            modeStatusText.color = stressModeColor;
+        }
     }
 
     public void OnTestClicked()

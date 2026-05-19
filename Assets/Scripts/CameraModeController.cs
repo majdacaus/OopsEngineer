@@ -13,7 +13,7 @@ public class CameraModeController : MonoBehaviour
         SetBuildMode();
     }
 
-    public void SetTestMode()
+    public void SetTestMode(Transform vehicleTransform = null)
     {
         Debug.Log($"[Camera] lockScript: {lockScript}, followScript: {followScript}");
     
