@@ -4791,6 +4791,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8375901157026646059, guid: 1b0056de02fcaae46be274fa756b983a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1075764642}
+    - targetCorrespondingSourceObject: {fileID: 8375901157026646059, guid: 1b0056de02fcaae46be274fa756b983a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1075764643}
   m_SourcePrefab: {fileID: 100100000, guid: 1b0056de02fcaae46be274fa756b983a, type: 3}
 --- !u!1001 &277829406
 PrefabInstance:
@@ -6158,13 +6161,29 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1938203201608606039, guid: b0842090d47f3434bbc864a6e1dcb3c0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 382608750}
   m_SourcePrefab: {fileID: 100100000, guid: b0842090d47f3434bbc864a6e1dcb3c0, type: 3}
 --- !u!1 &382608749 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1938203201608606039, guid: b0842090d47f3434bbc864a6e1dcb3c0, type: 3}
   m_PrefabInstance: {fileID: 382608748}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &382608750
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 382608749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e3c17cfe9ba88b4d8729317073c0805, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::TruckEngine
+  idleSound: {fileID: 8300000, guid: f19203f0923d08f4287c644a1b55d205, type: 3}
 --- !u!1001 &394436741
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11160,7 +11179,43 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 846894274}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 2023955154}
+        m_TargetAssemblyTypeName: MusicManager, GameScripts
+        m_MethodName: PlayBridgeBuildMusic
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 1075764643}
+        m_TargetAssemblyTypeName: TruckEngine, GameScripts
+        m_MethodName: StartEngine
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 382608750}
+        m_TargetAssemblyTypeName: TruckEngine, GameScripts
+        m_MethodName: StartEngine
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &846894274
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14583,6 +14638,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: GameScripts::VehicleWeightSource
   vehicleMass: 1200
   contactRadius: 5
+--- !u!114 &1075764643
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1075764634}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e3c17cfe9ba88b4d8729317073c0805, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::TruckEngine
+  idleSound: {fileID: 8300000, guid: b7349b552f8fede448e4d5fceaca553d, type: 3}
 --- !u!1 &1077554125
 GameObject:
   m_ObjectHideFlags: 0
@@ -27212,6 +27280,7 @@ GameObject:
   - component: {fileID: 2023955152}
   - component: {fileID: 2023955151}
   - component: {fileID: 2023955153}
+  - component: {fileID: 2023955154}
   m_Layer: 0
   m_Name: AudioManager
   m_TagString: Untagged
@@ -27230,8 +27299,8 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 8300000, guid: b6e30a35a85c18e4da881241656cc025, type: 3}
-  m_PlayOnAwake: 1
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 1
@@ -27343,7 +27412,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a6384a6574a7db499a8a207e01fea43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameScripts::UISound
-  clickSound: {fileID: 0}
+  clickSound: {fileID: 8300000, guid: b150c8f39b5403d46902a29a18745732, type: 3}
+--- !u!114 &2023955154
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2023955150}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c84b11488d4f4a45832d69751f27cf9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::MusicManager
+  bridgeBuildMusic: {fileID: 8300000, guid: a3f9e8be2b0fe594996802b9b2eafc12, type: 3}
+  stressTestMusic: {fileID: 8300000, guid: 9c547ab86acbf77439ec59fad53a4f36, type: 3}
+  startMusic: {fileID: 8300000, guid: b6e30a35a85c18e4da881241656cc025, type: 3}
 --- !u!1001 &2030036540
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -29455,7 +29539,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1001 &2973372763507877937
 PrefabInstance:
   m_ObjectHideFlags: 0
