@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class ConstructionAnalyzer : MonoBehaviour
@@ -52,6 +53,12 @@ public class ConstructionAnalyzer : MonoBehaviour
         
         beams = beams.FindAll(b => b.gameObject.activeInHierarchy &&
                                     Mathf.Abs(b.transform.position.x - frontX) < TOLERANCE);
+        // var activeNodes = nodes.Where(n => n != null && n.gameObject.activeInHierarchy).ToList();
+        // var activeBeams = beams.Where(b => b != null && b.gameObject.activeInHierarchy).ToList();
+        
+        
+        // nodes = nodes.FindAll(n => n != null && n.gameObject.activeInHierarchy && n.IsRevealed);
+        // beams = beams.FindAll(b => b != null && b.gameObject.activeInHierarchy);
         
         AnalysisResult res = new AnalysisResult();
         if (nodes.Count < 2) return res;
@@ -89,7 +96,11 @@ public class ConstructionAnalyzer : MonoBehaviour
             res.AdviceMessages.Add("Budget King! You're building this for pennies.");
         else if (res.CurrentCost > maxBudget)
             res.AdviceMessages.Add("Overbudget! The city council is going to kill us.");
-
+        Debug.Log($"<color=cyan>[ANALYSIS REPORT]</color> " +
+                  $"Path: {res.PathExists} | " +
+                  $"Floating: {res.IsFloating} | " +
+                  $"Triangles: {!res.IsLackingTriangles} | " +
+                  $"Health: {res.StructuralHealth}%");
         return res;
     }
 

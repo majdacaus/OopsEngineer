@@ -640,7 +640,12 @@ public class BridgeManager : MonoBehaviour
         foreach (Node node in allNodes)
         {
             if (node.IsAnchor) continue;
+        
             node.Reveal();
+        
+            if (!allNodeData.Contains(node)) 
+                allNodeData.Add(node);
+            
             StartCoroutine(HideNodeAfterDelay(node, duration));
         }
     }
@@ -649,7 +654,15 @@ public class BridgeManager : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         if (node != null && !node.IsAnchor)
-            node.Hide();
+        {
+            bool hasConnections = allBeamData.Exists(b => b.StartNode == node || b.EndNode == node);
+        
+            if (!hasConnections)
+            {
+                node.Hide();
+                allNodeData.Remove(node);
+            }
+        }
     }
 
     public void SetBeamPrefab(GameObject newPrefab)

@@ -65,6 +65,15 @@ public class StressSimulator : MonoBehaviour
     public bool TryStartTestMode()
     {
         if (simulationStarted) return false;
+        registeredBeams.Clear();
+        registeredNodes.Clear();
+
+        var allBeams = FindObjectsByType<Beam>(FindObjectsSortMode.None);
+        var allNodes = FindObjectsByType<Node>(FindObjectsSortMode.None);
+
+        registeredBeams.AddRange(allBeams);
+        registeredNodes.AddRange(allNodes);
+        
         if (analyzer == null) return false;
 
         AnalysisResult check = analyzer.PerformFullAnalysis(registeredNodes, registeredBeams);
@@ -125,10 +134,15 @@ public class StressSimulator : MonoBehaviour
     void ResetForces()
     {
         nodeForces.Clear();
-        foreach (Node n in registeredNodes) nodeForces[n] = 0f;
-        foreach (Beam b in registeredBeams)
+        foreach (var beam in registeredBeams)
         {
-            if (b != null && !b.IsBroken()) b.UpdateStress(0f);
+            if (beam == null) continue;
+            if (beam.StartNode != null) nodeForces[beam.StartNode] = 0f;
+            if (beam.EndNode != null) nodeForces[beam.EndNode] = 0f;
+        }
+        foreach (var n in registeredNodes)
+        {
+            if (n != null && !nodeForces.ContainsKey(n)) nodeForces[n] = 0f;
         }
     }
 
@@ -229,20 +243,33 @@ public class StressSimulator : MonoBehaviour
         foreach (Beam beam in registeredBeams)
         {
             if (beam == null || beam.IsBroken()) continue;
-            float forceA = nodeForces.GetValueOrDefault(beam.StartNode, 0f);
-            float forceB = nodeForces.GetValueOrDefault(beam.EndNode, 0f);
+        
+            float forceA = 0f;
+            float forceB = 0f;
+            if (beam.StartNode != null) nodeForces.TryGetValue(beam.StartNode, out forceA);
+            if (beam.EndNode != null) nodeForces.TryGetValue(beam.EndNode, out forceB);
+        
             beam.UpdateStress((forceA + forceB) / 2f);
         }
     }
 
     void CheckBreakage()
     {
-        if (!simulationStarted || hasCollapsed || lastAnalysis == null || !_vehicleOnBridge) return;
+        // if (!simulationStarted || hasCollapsed || lastAnalysis == null || !_vehicleOnBridge) return;
     
+        Debug.Log($"[BRIDGE HEALTH]: {lastAnalysis.StructuralHealth}% | Prag za pad: 60%");
+        
         if (lastAnalysis.StructuralHealth < 60f)
         {
+            Debug.Log("Kritična struktura! Pokrećem TriggerCollapse...");
             TriggerCollapse();
         }
+        
+        // if ((_vehicleOnBridge && lastAnalysis.StructuralHealth < 60f))
+        // {
+        //     Debug.Log($"RUŠENJE! Health: {lastAnalysis.StructuralHealth}%, Vozilo: {_vehicleOnBridge}");
+        //     TriggerCollapse();
+        // }
     }
 
     // void TriggerCollapse()
