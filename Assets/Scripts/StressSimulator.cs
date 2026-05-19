@@ -28,11 +28,15 @@ public class StressSimulator : MonoBehaviour
     private bool hasCollapsed = false;
     private bool simulationStarted = false;
     private bool _vehicleOnBridge = false;
+    
+    public AnalysisResult LastAnalysis => lastAnalysis;
 
     public static event Action<string> OnSimulationBlocked;
     public static event Action<AnalysisResult> OnSimulationPassed;
     public static event Action OnSimulationFailed;
 
+    public static event Action OnTestStarted;
+    public static event Action OnResetToBuild;
     public bool SimulationStarted => simulationStarted;
 
     void Start()
@@ -44,7 +48,7 @@ public class StressSimulator : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.L)) StartTestMode();
+        if (Input.GetKeyDown(KeyCode.L)) TryStartTestMode();
         if (Input.GetKeyDown(KeyCode.B)) ResetToBuildMode();
     }
 
@@ -74,7 +78,12 @@ public class StressSimulator : MonoBehaviour
         hasCollapsed = false;
         _vehicleOnBridge = false;
         
+        OnTestStarted?.Invoke();
+        
+        FindFirstObjectByType<CameraModeController>()?.SetTestMode();
         FindFirstObjectByType<BridgeAdvisor>()?.StartStressMonitoring();
+        
+        
         return true;
     }
 
@@ -342,5 +351,14 @@ public class StressSimulator : MonoBehaviour
         simulationStarted = false;
         hasCollapsed = false;
         _vehicleOnBridge = false;
+        
+        OnResetToBuild?.Invoke();
+        
+        FindFirstObjectByType<CameraModeController>()?.SetBuildMode();
+    }
+    
+    public void NotifySimulationPassed(AnalysisResult result)
+    {
+        OnSimulationPassed?.Invoke(result);
     }
 }

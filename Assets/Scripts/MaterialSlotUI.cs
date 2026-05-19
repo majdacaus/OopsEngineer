@@ -32,7 +32,7 @@ public class MaterialSlotUI : MonoBehaviour
             slotButton.onClick.AddListener(OnSlotClicked);
     }
 
-    private void OnSlotClicked()
+    public void OnSlotClicked()
     {
         if (materialData == null || _bridgeManager == null) return;
         if (!MaterialInventory.Instance.IsOwned(materialData)) return;

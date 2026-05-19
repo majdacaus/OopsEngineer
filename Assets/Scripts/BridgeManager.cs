@@ -555,8 +555,16 @@ public class BridgeManager : MonoBehaviour
         if (MaterialInventory.Instance != null)
         {
             MaterialData equipped = MaterialInventory.Instance.EquippedMaterial;
+            Debug.Log($"[RegisterBeam] Equipped: {equipped?.displayName ?? "NULL"}");
+
             if (equipped != null)
-                MaterialInventory.Instance.ConsumeUnit(equipped);
+            {
+                int before = MaterialInventory.Instance.GetQuantity(equipped);
+                bool consumed = MaterialInventory.Instance.ConsumeUnit(equipped);
+                int after = MaterialInventory.Instance.GetQuantity(equipped);
+                Debug.Log($"[RegisterBeam] Qty before: {before}, consumed: {consumed}, after: {after}");
+            }
+                //MaterialInventory.Instance.ConsumeUnit(equipped);
         }
         // -----------------------
 
@@ -568,7 +576,7 @@ public class BridgeManager : MonoBehaviour
             stressSimulator.RegisterNode(to);
             stressSimulator.RegisterBeam(bd);
         }
-
+        
         Debug.Log($"<color=green>[BridgeManager]</color> Greda uspješno registrovana: {from.name} -> {to.name}");
     }
     GameObject CreateBeamInstance(Vector3 start, Vector3 end, string beamName)

@@ -22,6 +22,7 @@ public class CoinManager : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
             currentCoins = startingCoins; 
+            UpdateUI();
         }
         else
         {
