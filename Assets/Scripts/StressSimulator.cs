@@ -1,164 +1,346 @@
+using System;
+using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Collections;
+using System.Linq;
+using Random = UnityEngine.Random;
 
 public class StressSimulator : MonoBehaviour
 {
-    [Header("Simulacija")]
-    [Tooltip("Koliko puta iteriramo distribuciju tereta (više = preciznije)")]
-    [SerializeField] int iterations = 5;
+    [Header("Simulacija")] 
+    [SerializeField] float tickRate = 0.05f;
+    [SerializeField] float breakThreshold = 1.15f;
+    [SerializeField] bool enableBreaking = true;
 
-    [Tooltip("Vlastita težina svake grede po jedinici dužine")]
-    [SerializeField] float beamWeightPerUnit = 0.1f;
+    [Header("Reference")]
+    [SerializeField] RoadBuilder roadBuilder;
+    [SerializeField] ConstructionAnalyzer analyzer;
 
-    [Tooltip("Koliko traje animacija pucanja grede")]
-    [SerializeField] float breakAnimDuration = 0.5f;
+    private readonly List<Beam> registeredBeams = new();
+    private readonly List<Node> registeredNodes = new();
+    private readonly List<VehicleWeightSource> vehicles = new();
 
-    [Header("Događaji")]
-    public System.Action<BeamData> onBeamBroken;
-    public System.Action onBridgeCollapsed; // pozvati game over
+    private readonly Dictionary<Node, int> depthMap = new();
+    private readonly Dictionary<Node, float> nodeForces = new();
 
-    // ─────────────────────────────────────────────────────────
-    // GLAVNA METODA — zovi je svaki put kad se most promijeni
-    // ili kad se doda novo opterećenje (vozilo)
-    // ─────────────────────────────────────────────────────────
-    public void RunSimulation(List<NodeData> nodes, List<BeamData> beams)
+    private BeamStressVisualizer visualizer;
+    private AnalysisResult lastAnalysis;
+    private bool hasCollapsed = false;
+    private bool simulationStarted = false;
+    private bool _vehicleOnBridge = false;
+
+    public static event Action<string> OnSimulationBlocked;
+    public static event Action<AnalysisResult> OnSimulationPassed;
+    public static event Action OnSimulationFailed;
+
+    public bool SimulationStarted => simulationStarted;
+
+    void Start()
     {
-        
-        // Ukloni sve uništene beame iz liste prije simulacije
-        beams.RemoveAll(b => b == null || b.gameObject == null);
-        nodes.RemoveAll(n => n == null || n.gameObject == null);
-        
-        foreach (var node in nodes)
-        {
-            if (node == null) continue;  // dodatna zaštita
-            node.accumulatedLoad = node.externalLoad;
-        }
-
-        foreach (var beam in beams)
-        {
-            if (beam == null) continue;
-            beam.stressRatio = 0f;
-        }
-
-        // KORAK 2: Dodaj vlastitu težinu greda kao load na njihove čvorove
-        foreach (var beam in beams)
-        {
-            float beamWeight = beam.length * beamWeightPerUnit;
-            // Polovina težine ide na svaki kraj
-            if (beam.startNode) beam.startNode.accumulatedLoad += beamWeight * 0.5f;
-            if (beam.endNode)   beam.endNode.accumulatedLoad   += beamWeight * 0.5f;
-        }
-
-        // KORAK 3: Iterativna propagacija
-        // Čvorovi koji su slobodni (ne-ankorirani) distribuiraju load
-        // na susjedne grede proporcionalno njihovoj efikasnosti
-        for (int i = 0; i < iterations; i++)
-        {
-            PropagateLoads(nodes);
-        }
-
-        // KORAK 4: Izračunaj stress svake grede
-        foreach (var beam in beams)
-        {
-            float totalLoad = 0f;
-            if (beam.startNode) totalLoad += beam.startNode.accumulatedLoad * 0.5f;
-            if (beam.endNode)   totalLoad += beam.endNode.accumulatedLoad   * 0.5f;
-
-            // Dulja greda = manji stress per unit, ali manja snaga
-            float capacity = beam.StrengthFactor;
-            beam.stressRatio = totalLoad / Mathf.Max(capacity, 0.01f);
-
-            beam.UpdateVisual();
-        }
-
-        // KORAK 5: Provjeri pucanja
-        CheckForBreaks(beams);
+        visualizer = GetComponent<BeamStressVisualizer>() ?? gameObject.AddComponent<BeamStressVisualizer>();
+        if (analyzer == null) analyzer = GetComponent<ConstructionAnalyzer>();
+        InvokeRepeating(nameof(RunSimulation), 0.3f, tickRate);
     }
 
-    void PropagateLoads(List<NodeData> nodes)
+    void Update()
     {
-        foreach (var node in nodes)
+        if (Input.GetKeyDown(KeyCode.L)) StartTestMode();
+        if (Input.GetKeyDown(KeyCode.B)) ResetToBuildMode();
+    }
+
+    public void StartTestMode()
+    {
+        if (simulationStarted) return;
+        if (analyzer == null) return;
+
+        simulationStarted = true;
+        hasCollapsed = false;
+        _vehicleOnBridge = false;
+    }
+
+    public bool TryStartTestMode()
+    {
+        if (simulationStarted) return false;
+        if (analyzer == null) return false;
+
+        AnalysisResult check = analyzer.PerformFullAnalysis(registeredNodes, registeredBeams);
+        if (!check.PathExists)
         {
-            
-            if (node == null) continue;  // ← dodaj ovo
+            OnSimulationBlocked?.Invoke("Most ne spaja obje strane!");
+            return false;
+        }
 
-            if (node.isAnchor) continue;
-            if (node.connectedBeams.Count == 0) continue;
+        simulationStarted = true;
+        hasCollapsed = false;
+        _vehicleOnBridge = false;
+        
+        FindFirstObjectByType<BridgeAdvisor>()?.StartStressMonitoring();
+        return true;
+    }
 
-            // Ukloni uništene beame i s čvora
-            node.connectedBeams.RemoveAll(b => b == null);
-            // Ankorirani čvorovi upijaju load — ne propagiraju dalje
+    public void RegisterBeam(Beam beam)
+    {
+        if (beam != null && !registeredBeams.Contains(beam))
+        {
+            registeredBeams.Add(beam);
+            visualizer.RegisterBeam(beam);
+        }
+    }
 
+    public void RegisterNode(Node node)
+    {
+        if (node != null && !registeredNodes.Contains(node))
+            registeredNodes.Add(node);
+    }
 
-            // Izračunaj ukupnu efikasnost svih greda na ovom čvoru
-            float totalEfficiency = 0f;
-            foreach (var beam in node.connectedBeams)
-                totalEfficiency += beam.EfficiencyFactor;
+    public void RegisterVehicle(VehicleWeightSource v) => vehicles.Add(v);
+    public void UnregisterVehicle(VehicleWeightSource v) => vehicles.Remove(v);
+    public void NotifyVehicleOnBridge() => _vehicleOnBridge = true;
 
-            if (totalEfficiency <= 0f) continue;
+    void RunSimulation()
+    {
+        if (!simulationStarted || hasCollapsed || analyzer == null || registeredBeams.Count == 0) return;
+        lastAnalysis = analyzer.PerformFullAnalysis(registeredNodes, registeredBeams);
 
-            // Distribuiraj load proporcionalno efikasnosti
-            float loadToDistribute = node.accumulatedLoad * 0.15f; // 40% se širi dalje
+        ResetForces();
+        BuildDepthMap();
+        ApplyVehicleLoads();
+        PropagateForces();
+        ComputeAndApplyStress();
+        
+        if (enableBreaking) CheckBreakage();
+        if (!hasCollapsed)
+            visualizer.UpdateVisuals(registeredBeams);
+    }
 
-            foreach (var beam in node.connectedBeams)
+    void ResetForces()
+    {
+        nodeForces.Clear();
+        foreach (Node n in registeredNodes) nodeForces[n] = 0f;
+        foreach (Beam b in registeredBeams)
+        {
+            if (b != null && !b.IsBroken()) b.UpdateStress(0f);
+        }
+    }
+
+    void BuildDepthMap()
+    {
+        depthMap.Clear();
+        Queue<Node> queue = new();
+
+        foreach (Node n in registeredNodes.Where(n => n != null && n.IsAnchor))
+        {
+            depthMap[n] = 0;
+            queue.Enqueue(n);
+        }
+
+        while (queue.Count > 0)
+        {
+            Node current = queue.Dequeue();
+            foreach (Beam beam in current.GetConnectedBeams())
             {
-                float share = (beam.EfficiencyFactor / totalEfficiency) * loadToDistribute;
-
-                // Šalji load na suprotni kraj grede
-                NodeData other = (beam.startNode == node) ? beam.endNode : beam.startNode;
-                if (other != null)
-                    other.accumulatedLoad += share;
+                if (beam == null || beam.IsBroken()) continue;
+                Node neighbour = beam.GetOtherNode(current);
+                if (neighbour == null || depthMap.ContainsKey(neighbour)) continue;
+                depthMap[neighbour] = depthMap[current] + 1;
+                queue.Enqueue(neighbour);
             }
         }
     }
 
-    void CheckForBreaks(List<BeamData> beams)
+    void ApplyVehicleLoads()
     {
-        List<BeamData> broken = new List<BeamData>();
+        foreach (VehicleWeightSource vehicle in vehicles)
+        {
+            if (vehicle == null) continue;
 
-        foreach (var beam in beams)
-            if (beam.IsBroken()) broken.Add(beam);
+            Vector3 pos = vehicle.GroundPoint;
+            float force = vehicle.WeightForce;
+            float radius = vehicle.ContactRadius;
 
-        if (broken.Count > 0)
-            StartCoroutine(BreakBeams(broken));
+            var nearby = registeredNodes
+                .Where(n => n != null && depthMap.ContainsKey(n) && Vector3.Distance(pos, n.transform.position) < radius)
+                .Select(n => (node: n, invDist: 1f / Mathf.Max(Vector3.Distance(pos, n.transform.position), 0.05f)))
+                .ToList();
+
+            float totalWeight = nearby.Sum(x => x.invDist);
+            if (totalWeight <= 0f) continue;
+
+            foreach (var (node, invDist) in nearby)
+                nodeForces[node] += force * (invDist / totalWeight);
+        }
     }
 
-    IEnumerator BreakBeams(List<BeamData> beams)
+    void PropagateForces()
     {
-        foreach (var beam in beams)
+        if (depthMap.Count == 0) return;
+        int maxDepth = depthMap.Values.Max();
+
+        for (int depth = maxDepth; depth > 0; depth--)
         {
-            if (beam == null) continue; 
-            
-            onBeamBroken?.Invoke(beam);
-
-            // Animacija: greda pada/nestaje
-            float t = 0f;
-            Vector3 originalPos = beam.transform.position;
-
-            while (t < breakAnimDuration)
+            foreach (Node node in registeredNodes.Where(n => n != null && depthMap.ContainsKey(n) && depthMap[n] == depth))
             {
-                if (beam == null) break;  
-                t += Time.deltaTime;
-                float progress = t / breakAnimDuration;
+                if (!nodeForces.TryGetValue(node, out float force) || force <= 0f) continue;
 
-                // Pada dolje i nestaje
-                beam.transform.position = originalPos + Vector3.down * progress * 3f;
+                var outgoing = node.GetConnectedBeams()
+                    .Where(b => b != null && !b.IsBroken() && depthMap.ContainsKey(b.GetOtherNode(node))
+                                              && depthMap[b.GetOtherNode(node)] < depth)
+                    .ToList();
 
-                Renderer r = beam.GetComponent<Renderer>();
-                if (r)
+                if (outgoing.Count == 0) continue;
+
+                float totalStiffness = outgoing.Sum(b => GetEffectiveStiffness(b, node));
+                if (totalStiffness <= 0f) continue;
+
+                foreach (Beam beam in outgoing)
                 {
-                    Color c = r.material.color;
-                    c.a = 1f - progress;
-                    r.material.color = c;
-                }
+                    float eff = GetEffectiveStiffness(beam, node);
+                    float share = eff / totalStiffness;
+                    float beamForce = force * share;
 
-                yield return null;
+                    Node next = beam.GetOtherNode(node);
+                    nodeForces[next] = nodeForces.GetValueOrDefault(next, 0f) + beamForce;
+                }
             }
-            if (beam != null)
-            Destroy(beam.gameObject);
+        }
+    }
+
+    float GetEffectiveStiffness(Beam beam, Node fromNode)
+    {
+        if (!BeamMaterialProperties.IsCable(beam.MaterialType))
+            return BeamMaterialProperties.GetStiffness(beam.MaterialType);
+
+        Vector3 toOther = beam.GetOtherNode(fromNode).transform.position - fromNode.transform.position;
+        return toOther.y > 0.05f ? BeamMaterialProperties.GetStiffness(beam.MaterialType) : 0f;
+    }
+
+    void ComputeAndApplyStress()
+    {
+        
+        foreach (Beam beam in registeredBeams)
+        {
+            if (beam == null || beam.IsBroken()) continue;
+            float forceA = nodeForces.GetValueOrDefault(beam.StartNode, 0f);
+            float forceB = nodeForces.GetValueOrDefault(beam.EndNode, 0f);
+            beam.UpdateStress((forceA + forceB) / 2f);
+        }
+    }
+
+    void CheckBreakage()
+    {
+        if (!simulationStarted || hasCollapsed || lastAnalysis == null || !_vehicleOnBridge) return;
+    
+        if (lastAnalysis.StructuralHealth < 60f)
+        {
+            TriggerCollapse();
+        }
+    }
+
+    // void TriggerCollapse()
+    // {
+    //     hasCollapsed = true;
+    //     simulationStarted = false;
+    //
+    //     foreach (var beam in registeredBeams)
+    //         if (beam != null) StartCoroutine(SinkAndFade(beam.gameObject));
+    //
+    //     foreach (var node in registeredNodes)
+    //         if (node != null && !node.IsAnchor) StartCoroutine(SinkAndFade(node.gameObject));
+    //
+    //     if (roadBuilder != null) roadBuilder.ClearAllRoad(); 
+    //     OnSimulationFailed?.Invoke();
+    //     Invoke(nameof(ResetToBuildMode), 4f);
+    // }
+    //
+    void TriggerCollapse()
+    {
+        hasCollapsed = true;
+        simulationStarted = false;
+
+        
+        if (visualizer != null) visualizer.ClearData();
+        List<Beam> beamsCopy = new List<Beam>(registeredBeams);
+        List<Node> nodesCopy = new List<Node>(registeredNodes);
+
+        registeredBeams.Clear();
+        registeredNodes.Clear();
+
+        foreach (var beam in beamsCopy)
+        {
+            if (beam != null) StartCoroutine(SinkAndFade(beam.gameObject));
         }
 
-        onBridgeCollapsed?.Invoke();
+        foreach (var node in nodesCopy)
+        {
+            if (node != null && !node.IsAnchor) 
+                StartCoroutine(SinkAndFade(node.gameObject));
+        }
+        
+        foreach (var vehicle in vehicles)
+        {
+            if (vehicle != null)
+            {
+                if (vehicle.TryGetComponent(out Rigidbody rb))
+                {
+                    rb.isKinematic = false;rb.useGravity = true;
+                }
+                var controller = vehicle.GetComponent<MonoBehaviour>(); 
+                if (controller != null) controller.enabled = false;
+            }
+        }
+
+        if (roadBuilder != null) roadBuilder.ClearAllRoad();
+    
+        OnSimulationFailed?.Invoke();
+        Invoke(nameof(ResetToBuildMode), 4f);
+    }
+
+    private IEnumerator SinkAndFade(GameObject obj)
+    {
+        float duration = 3.0f;
+        float elapsed = 0f;
+        Vector3 startPos = obj.transform.position;
+        Vector3 startScale = obj.transform.localScale;
+        Quaternion startRot = obj.transform.rotation;
+        Quaternion targetRot = startRot * Quaternion.Euler(Random.Range(-45f, 45f), Random.Range(-45f, 45f), Random.Range(-45f, 45f));
+        Vector3 targetPos = startPos + Vector3.down * 7f + new Vector3(Random.Range(-1.5f, 1.5f), 0, Random.Range(-1.5f, 1.5f));
+
+        if (obj.TryGetComponent(out Collider col)) col.enabled = false;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float smoothPercent = Mathf.SmoothStep(0, 1, elapsed / duration);
+            obj.transform.position = Vector3.Lerp(startPos, targetPos, smoothPercent);
+            obj.transform.rotation = Quaternion.Lerp(startRot, targetRot, smoothPercent);
+            obj.transform.localScale = Vector3.Lerp(startScale, Vector3.zero, smoothPercent);
+            yield return null;
+        }
+        Destroy(obj);
+    }
+
+    public void ResetToBuildMode()
+    {
+        FindFirstObjectByType<BridgeAdvisor>()?.StopStressMonitoring();
+
+        StopAllCoroutines();
+
+        foreach (var beam in registeredBeams)
+        {
+            if (beam != null) 
+            {
+                beam.UpdateStress(0f);
+                Destroy(beam.gameObject);
+            }
+        }
+        
+        foreach (var node in registeredNodes)
+            if (node != null && !node.IsAnchor) Destroy(node.gameObject);
+        
+        registeredBeams.Clear();
+        registeredNodes.Clear();
+        simulationStarted = false;
+        hasCollapsed = false;
+        _vehicleOnBridge = false;
     }
 }

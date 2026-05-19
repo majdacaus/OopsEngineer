@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Node
   - Beam
+  - Road
   layers:
   - Default
   - TransparentFX

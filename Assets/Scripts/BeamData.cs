@@ -7,18 +7,14 @@ public class BeamData : MonoBehaviour
     public NodeData startNode;
     public NodeData endNode;
     public float length;
-    public float angle; // kut od horizontale (0° = horizontalan, 90° = vertikalan)
+    public float angle; 
 
     [Header("Stress (0 = nema, 1 = maksimum, >1 = pukao)")]
     [Range(0f, 1.5f)] public float stressRatio = 0f;
     public float maxLoad = 100f; // koliko može nositi prije pucanja
-
-    // Koliko efektivno prenosi load ovisno o kutu
-    // Horizontalne grede su najefikasnije za most
-    // Dijagonalne grede prenose manji udio vertikalnog tereta
+    
     public float EfficiencyFactor => Mathf.Cos(angle * Mathf.Deg2Rad);
 
-    // Duže grede su slabije (realna mehanika)
     public float StrengthFactor => maxLoad / Mathf.Max(length, 0.1f);
 
     private Renderer beamRenderer;
@@ -28,12 +24,10 @@ public class BeamData : MonoBehaviour
         beamRenderer = GetComponent<Renderer>();
     }
 
-    // Poziva StressSimulator svaki put kad se most promijeni
     public void UpdateVisual()
     {
         if (beamRenderer == null) return;
 
-        // Interpoliraj boju: zelena(0) → žuta(0.5) → crvena(1) → tamnocrvena(>1)
         Color col;
         if (stressRatio < 0.5f)
             col = Color.Lerp(Color.green, Color.yellow, stressRatio * 2f);

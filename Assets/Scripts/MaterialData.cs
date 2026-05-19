@@ -8,6 +8,11 @@ public class MaterialData : ScriptableObject
     public string displayName;
     [TextArea] public string description;
     public Sprite icon;
+    
+    [Header("Prefab")]
+// -----------------------
+    public GameObject beamPrefab;
+// -----------------------
 
     [Header("Category")]
     public MaterialCategory category;
@@ -23,14 +28,15 @@ public class MaterialData : ScriptableObject
     public bool isNew;
     public int requiredLevel;
 
+    // -----------------------
+    [Header("Quantity")]
+    [Tooltip("How many units the player receives per purchase")]
+    public int purchaseQuantity = 10;
+    // -----------------------
+
     [Header("Visuals")]
-    public Color swatchColor = Color.white;
+    public Color swatchColor  = Color.white;
     public Color swatchBorderColor = Color.gray;
 }
 
-public enum MaterialCategory
-{
-    Wood,
-    Metal,
-    Advanced
-}
+public enum MaterialCategory { Wood, Metal, Advanced }

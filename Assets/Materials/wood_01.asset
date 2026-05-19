@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Wood
   description: Good 'ol lumber. Works, that's all that matters.
   icon: {fileID: 0}
+  beamPrefab: {fileID: 5228679980159667573, guid: b3d425de51f2aa74d8f655a3268eec75, type: 3}
   category: 0
   strength: 3
   weight: 4
@@ -24,5 +25,6 @@ MonoBehaviour:
   freeStarter: 1
   isNew: 0
   requiredLevel: 0
+  purchaseQuantity: 10
   swatchColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
   swatchBorderColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}

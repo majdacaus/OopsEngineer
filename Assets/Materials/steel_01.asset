@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Steel
   description: Stronger than wood. Can resist wind. Pretty heavy.
   icon: {fileID: 0}
+  beamPrefab: {fileID: 5228679980159667573, guid: eb64174033b990344a63b09091a5fc72, type: 3}
   category: 1
   strength: 5
   weight: 8
@@ -24,5 +25,6 @@ MonoBehaviour:
   freeStarter: 0
   isNew: 1
   requiredLevel: 1
+  purchaseQuantity: 10
   swatchColor: {r: 1, g: 1, b: 1, a: 1}
   swatchBorderColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}

@@ -4,12 +4,12 @@ using System.Collections.Generic;
 public class NodeData : MonoBehaviour
 {
     [Header("Tip čvora")]
-    public bool isAnchor = false; // Ankorirani čvorovi (tlo, obala) - ne mogu se micati
+    public bool isAnchor = false; 
     public bool isStartNode = false;
 
     [Header("Runtime load")]
-    public float accumulatedLoad = 0f; // koliko tereta nosi ovaj čvor
-    public float externalLoad = 0f;    // npr. težina vozila na ovom čvoru
+    public float accumulatedLoad = 0f; 
+    public float externalLoad = 0f;    
 
     [HideInInspector] public List<BeamData> connectedBeams = new List<BeamData>();
     [HideInInspector] public bool isRevealed = false;
