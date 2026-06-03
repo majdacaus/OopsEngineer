@@ -24,7 +24,7 @@ public class TruckEngine : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.L))
         {
-            PlayStressMusic();
+           // PlayStressMusic();
         }
 
         bool moving = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow);
